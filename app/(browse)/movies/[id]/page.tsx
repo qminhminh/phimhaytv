@@ -1,181 +1,181 @@
-import { notFound } from 'next/navigation';
-import { Star, Calendar, Clock, Play, Plus, Share2 } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Badge } from '../../../../components/ui/badge';
-import MediaPlayer from '../../../../components/shared/MediaPlayer';
-import MovieCarousel from '../../../../components/shared/MovieCarousel';
+import { getMovieDetail } from '@/lib/api';
+import { Metadata } from 'next';
+import Image from 'next/image';
+import { Play, Calendar, Clock, Star, Tag, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import MediaPlayer from '@/components/shared/MediaPlayer';
 
-// Sample movie data
-const movieData: { [key: string]: any } = {
-  "1": {
-    id: "1",
-    title: "Inception",
-    year: "2010",
-    duration: "2h 28min",
-    rating: "PG-13",
-    genre: ["Sci-Fi", "Thriller", "Action"],
-    director: "Christopher Nolan",
-    cast: ["Leonardo DiCaprio", "Marion Cotillard", "Tom Hardy", "Ellen Page"],
-    synopsis: "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.",
-    poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
-    backdrop: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
-    imdbRating: 8.8,
-    releaseDate: "2010-07-16"
-  }
-};
+interface MovieDetailPageProps {
+  params: {
+    id: string;
+  };
+}
 
-const similarMovies = [
-  {
-    id: "2",
-    title: "The Matrix",
-    poster: "https://images.pexels.com/photos/7991663/pexels-photo-7991663.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
-    year: "1999",
-    genre: "Action, Sci-Fi",
-    rating: "R",
-    type: "movie" as const
-  },
-  {
-    id: "3",
-    title: "Interstellar",
-    poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
-    year: "2014",
-    genre: "Drama, Sci-Fi",
-    rating: "PG-13",
-    type: "movie" as const
-  },
-  {
-    id: "4",
-    title: "Blade Runner 2049",
-    poster: "https://images.pexels.com/photos/7991663/pexels-photo-7991663.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
-    year: "2017",
-    genre: "Sci-Fi, Thriller",
-    rating: "R",
-    type: "movie" as const
-  }
-];
+export async function generateMetadata({ params }: MovieDetailPageProps): Promise<Metadata> {
+  const movieData = await getMovieDetail(params.id);
+  const movie = movieData.item;
 
-export default function MoviePage({ params }: { params: { id: string } }) {
-  const movie = movieData[params.id];
+  return {
+    title: `${movie.name} (${movie.year}) | PhimHayTV`,
+    description: movie.content,
+    openGraph: {
+      images: [movie.poster_url || movie.thumb_url],
+    },
+  };
+}
+
+export default async function MovieDetailPage({ params }: MovieDetailPageProps) {
+  const movieData = await getMovieDetail(params.id);
+  const movie = movieData.item;
   
-  if (!movie) {
-    notFound();
-  }
+  // Lấy tập đầu tiên nếu có
+  const firstServer = movie.episodes[0];
+  const firstEpisode = firstServer?.server_data[0];
 
   return (
     <div className="min-h-screen bg-[#121212] pt-16">
-      {/* Hero Section with Background */}
-      <div className="relative h-screen">
+      {/* Hero Section */}
+      <div className="relative h-[50vh] md:h-[60vh] overflow-hidden">
+        {/* Background Image */}
         <div 
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${movie.backdrop})` }}
+          style={{ backgroundImage: `url(${movie.poster_url || movie.thumb_url})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#121212] via-[#121212]/80 to-transparent" />
         
-        <div className="relative z-10 flex items-center h-full">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-              {/* Movie Poster */}
-              <div className="flex justify-center lg:justify-start">
-                <img
-                  src={movie.poster}
-                  alt={movie.title}
-                  className="w-80 h-[480px] object-cover rounded-lg shadow-2xl"
-                />
-              </div>
-              
-              {/* Movie Info */}
-              <div className="text-center lg:text-left">
-                <h1 className="text-4xl md:text-6xl font-bold text-[#EAEAEA] mb-4 text-shadow">
-                  {movie.title}
-                </h1>
-                
-                {/* Rating and Meta */}
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-6">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-5 h-5 text-[#FFD700]" fill="currentColor" />
-                    <span className="text-[#EAEAEA] font-semibold">{movie.imdbRating}</span>
-                  </div>
-                  <Badge variant="outline" className="border-[#FFD700] text-[#FFD700]">
-                    {movie.rating}
-                  </Badge>
-                  <div className="flex items-center gap-1 text-[#A0A0A0]">
-                    <Calendar className="w-4 h-4" />
-                    <span>{movie.year}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-[#A0A0A0]">
-                    <Clock className="w-4 h-4" />
-                    <span>{movie.duration}</span>
-                  </div>
-                </div>
-                
-                {/* Genres */}
-                <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-6">
-                  {movie.genre.map((g: string) => (
-                    <Badge key={g} variant="secondary" className="bg-[#2A2A2A] text-[#EAEAEA]">
-                      {g}
-                    </Badge>
-                  ))}
-                </div>
-                
-                {/* Synopsis */}
-                <p className="text-lg text-[#EAEAEA] mb-8 leading-relaxed max-w-2xl">
-                  {movie.synopsis}
-                </p>
-                
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  <Button size="lg" className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-[#121212] font-semibold px-8">
-                    <Play className="mr-2 h-5 w-5" fill="currentColor" />
-                    Play Now
-                  </Button>
-                  <Button size="lg" variant="outline" className="border-[#EAEAEA] text-[#EAEAEA] hover:bg-[#EAEAEA] hover:text-[#121212]">
-                    <Plus className="mr-2 h-5 w-5" />
-                    Add to List
-                  </Button>
-                  <Button size="lg" variant="outline" className="border-[#EAEAEA] text-[#EAEAEA] hover:bg-[#EAEAEA] hover:text-[#121212]">
-                    <Share2 className="mr-2 h-5 w-5" />
-                    Share
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#121212] to-transparent" />
       </div>
       
-      {/* Content Sections */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Media Player */}
-        <div className="mb-16">
-          <MediaPlayer 
-            title={movie.title}
-            poster={movie.poster}
-          />
-        </div>
-        
-        {/* Cast & Crew */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-bold text-[#EAEAEA] mb-6">Cast & Crew</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <h3 className="text-[#FFD700] font-semibold mb-2">Director</h3>
-              <p className="text-[#EAEAEA]">{movie.director}</p>
+      {/* Content */}
+      <div className="container mx-auto px-4 -mt-40 relative z-10">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Poster */}
+          <div className="flex-shrink-0 w-full md:w-80">
+            <div className="relative aspect-[2/3] rounded-lg overflow-hidden shadow-xl">
+              <Image
+                src={movie.thumb_url}
+                alt={movie.name}
+                fill
+                className="object-cover"
+                priority
+              />
             </div>
-            <div className="col-span-1 md:col-span-3">
-              <h3 className="text-[#FFD700] font-semibold mb-2">Starring</h3>
-              <div className="flex flex-wrap gap-2">
-                {movie.cast.map((actor: string) => (
-                  <span key={actor} className="text-[#EAEAEA] bg-[#2A2A2A] px-3 py-1 rounded-full text-sm">
-                    {actor}
-                  </span>
-                ))}
-              </div>
+          </div>
+          
+          {/* Details */}
+          <div className="flex-1">
+            <h1 className="text-3xl md:text-4xl font-bold text-[#EAEAEA] mb-2">
+              {movie.name}
+            </h1>
+            <h2 className="text-xl text-[#A0A0A0] mb-4">
+              {movie.origin_name} {movie.year && `(${movie.year})`}
+            </h2>
+            
+            {/* Meta Info */}
+            <div className="flex flex-wrap gap-4 mb-6 text-[#A0A0A0]">
+              {movie.quality && (
+                <span className="px-2 py-1 bg-[#FFD700] text-[#121212] text-xs font-bold rounded">
+                  {movie.quality}
+                </span>
+              )}
+              {movie.lang && (
+                <div className="flex items-center">
+                  <Globe className="w-4 h-4 mr-1" />
+                  <span>{movie.lang}</span>
+                </div>
+              )}
+              {movie.year && (
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  <span>{movie.year}</span>
+                </div>
+              )}
+              {movie.time && (
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-1" />
+                  <span>{movie.time}</span>
+                </div>
+              )}
+              {movie.type === 'series' && movie.episode_current && (
+                <div className="flex items-center">
+                  <span>{movie.episode_current}/{movie.episode_total || '?'} tập</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Categories */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {movie.category?.map((cat, index) => (
+                <span 
+                  key={index}
+                  className="px-3 py-1 bg-[#2A2A2A] text-[#EAEAEA] rounded-full text-sm"
+                >
+                  {cat}
+                </span>
+              ))}
+            </div>
+            
+            {/* Description */}
+            <p className="text-[#EAEAEA] mb-8 leading-relaxed">
+              {movie.content}
+            </p>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-4">
+              {firstEpisode && (
+                <Button 
+                  className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-[#121212] font-semibold px-8 py-3 text-lg h-11 rounded-md"
+                >
+                  <Play className="mr-2 h-5 w-5" fill="currentColor" />
+                  Xem Ngay
+                </Button>
+              )}
             </div>
           </div>
         </div>
         
-        {/* Similar Movies */}
-        <MovieCarousel title="More Like This" movies={similarMovies} />
+        {/* Player Section */}
+        {firstEpisode && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-[#EAEAEA] mb-6">
+              {movie.type === 'series' ? 'Tập phim' : 'Xem phim'}
+            </h2>
+            <MediaPlayer 
+              embedUrl={firstEpisode.link_embed} 
+              m3u8Url={firstEpisode.link_m3u8}
+            />
+          </div>
+        )}
+        
+        {/* Episodes Section */}
+        {movie.type === 'series' && movie.episodes.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-[#EAEAEA] mb-6">Danh sách tập phim</h2>
+            
+            {/* Server Selection */}
+            <div className="mb-6">
+              {movie.episodes.map((server, index) => (
+                <div key={index} className="mb-6">
+                  <h3 className="text-lg font-semibold text-[#EAEAEA] mb-4">
+                    {server.server_name}
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {server.server_data.map((episode, episodeIndex) => (
+                      <Button
+                        key={episodeIndex}
+                        variant="outline"
+                        className="border-[#2A2A2A] hover:bg-[#2A2A2A] text-[#EAEAEA]"
+                      >
+                        {episode.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

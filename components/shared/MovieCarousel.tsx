@@ -3,23 +3,14 @@
 import { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MovieCard from './MovieCard';
-
-interface Movie {
-  id: string;
-  title: string;
-  poster: string;
-  year: string;
-  genre: string;
-  rating: string;
-  type: 'movie' | 'tv';
-}
+import { Movie } from '@/lib/api';
 
 interface MovieCarouselProps {
-  title: string;
-  movies: Movie[];
+  title?: string;
+  movies?: Movie[];
 }
 
-export default function MovieCarousel({ title, movies }: MovieCarouselProps) {
+export default function MovieCarousel({ title, movies = [] }: MovieCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -46,11 +37,18 @@ export default function MovieCarousel({ title, movies }: MovieCarouselProps) {
     }
   };
 
+  // Nếu không có phim, không hiển thị gì cả
+  if (!movies || movies.length === 0) {
+    return null;
+  }
+
   return (
     <div className="relative mb-8">
-      <h2 className="text-2xl font-bold text-[#EAEAEA] mb-4 px-4 sm:px-6 lg:px-8">
-        {title}
-      </h2>
+      {title && (
+        <h2 className="text-2xl font-bold text-[#EAEAEA] mb-4 px-4 sm:px-6 lg:px-8">
+          {title}
+        </h2>
+      )}
       
       <div className="relative group">
         {/* Left Arrow */}
@@ -81,8 +79,8 @@ export default function MovieCarousel({ title, movies }: MovieCarouselProps) {
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {movies.map((movie) => (
-            <div key={movie.id} className="flex-none w-64">
-              <MovieCard {...movie} />
+            <div key={movie._id} className="flex-none w-64">
+              <MovieCard movie={movie} />
             </div>
           ))}
         </div>
