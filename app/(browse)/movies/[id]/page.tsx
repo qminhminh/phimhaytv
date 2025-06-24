@@ -1,4 +1,4 @@
-import { getMovieDetail } from '@/lib/api';
+import { getMovieDetail, getMoviesList } from '@/lib/api';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import { Play, Calendar, Clock, Star, Tag, Globe } from 'lucide-react';
@@ -22,6 +22,23 @@ export async function generateMetadata({ params }: MovieDetailPageProps): Promis
       images: [movie.poster_url || movie.thumb_url],
     },
   };
+}
+
+// Hàm này cần thiết cho cấu hình output: export
+export async function generateStaticParams() {
+  try {
+    // Lấy danh sách phim lẻ để tạo các trang tĩnh
+    const movies = await getMoviesList('phim-le', { limit: 40 });
+    
+    // Trả về mảng các tham số cho trang
+    return (movies?.items || []).map((movie) => ({
+      id: movie.slug,
+    }));
+  } catch (error) {
+    console.error('Lỗi khi tạo trang tĩnh cho phim:', error);
+    // Trả về một mảng với ít nhất một giá trị mặc định để tránh lỗi
+    return [{ id: 'default-movie' }];
+  }
 }
 
 export default async function MovieDetailPage({ params }: MovieDetailPageProps) {

@@ -1,4 +1,4 @@
-import { getMovieDetail } from '@/lib/api';
+import { getMovieDetail, getMoviesList } from '@/lib/api';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import { Play, Calendar, Clock, Star, Tag, Globe } from 'lucide-react';
@@ -22,6 +22,27 @@ export async function generateMetadata({ params }: TVShowDetailPageProps): Promi
       images: [series.poster_url || series.thumb_url],
     },
   };
+}
+
+// Hàm này cần thiết cho cấu hình output: export
+export async function generateStaticParams() {
+  try {
+    // Lấy danh sách phim bộ/TV Shows để tạo các trang tĩnh
+    const tvShows = await getMoviesList('tv-shows', { limit: 20 });
+    const series = await getMoviesList('phim-bo', { limit: 20 });
+    
+    // Kết hợp cả hai danh sách
+    const allShows = [...(tvShows?.items || []), ...(series?.items || [])];
+    
+    // Trả về mảng các tham số cho trang
+    return allShows.map((show) => ({
+      id: show.slug,
+    }));
+  } catch (error) {
+    console.error('Lỗi khi tạo trang tĩnh cho phim bộ/TV Shows:', error);
+    // Trả về một mảng với ít nhất một giá trị mặc định để tránh lỗi
+    return [{ id: 'default-tvshow' }];
+  }
 }
 
 export default async function TVShowDetailPage({ params }: TVShowDetailPageProps) {

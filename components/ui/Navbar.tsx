@@ -34,6 +34,9 @@ export default function Navbar() {
             <Link href="/" className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
               Home
             </Link>
+            <Link href="/latest" className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
+              Phim Mới
+            </Link>
             <Link href="/movies" className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
               Movies
             </Link>
@@ -116,6 +119,9 @@ export default function Navbar() {
           <div className="md:hidden bg-[#1A1A1A] rounded-lg mt-2 p-4">
             <Link href="/" className="block py-2 text-[#EAEAEA] hover:text-[#FFD700]">
               Home
+            </Link>
+            <Link href="/latest" className="block py-2 text-[#EAEAEA] hover:text-[#FFD700]">
+              Phim Mới
             </Link>
             <Link href="/movies" className="block py-2 text-[#EAEAEA] hover:text-[#FFD700]">
               Movies

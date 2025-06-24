@@ -44,13 +44,20 @@ export interface MovieDetail extends Movie {
 export interface MovieResponse {
   status: boolean;
   items: Movie[];
-  params: {
+  params?: {
     pagination: {
       totalItems: number;
       totalItemsPerPage: number;
       currentPage: number;
       totalPages: number;
     };
+  };
+  pagination?: {
+    totalItems: number;
+    totalItemsPerPage: number;
+    currentPage: number;
+    totalPages: number;
+    updateToday?: number;
   };
 }
 

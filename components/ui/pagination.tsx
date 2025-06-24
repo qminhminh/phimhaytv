@@ -1,117 +1,154 @@
-import * as React from 'react';
-import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+import React from "react"
+import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
 
-import { cn } from '../../lib/utils';
-import { ButtonProps, buttonVariants } from './button';
+interface PaginationProps extends React.HTMLAttributes<HTMLDivElement> {
+  currentPage: number
+  totalPages: number
+  onPageChange?: (page: number) => void
+  baseUrl?: string
+}
 
-const Pagination = ({ className, ...props }: React.ComponentProps<'nav'>) => (
-  <nav
-    role="navigation"
-    aria-label="pagination"
-    className={cn('mx-auto flex w-full justify-center', className)}
-    {...props}
-  />
-);
-Pagination.displayName = 'Pagination';
-
-const PaginationContent = React.forwardRef<
-  HTMLUListElement,
-  React.ComponentProps<'ul'>
->(({ className, ...props }, ref) => (
-  <ul
-    ref={ref}
-    className={cn('flex flex-row items-center gap-1', className)}
-    {...props}
-  />
-));
-PaginationContent.displayName = 'PaginationContent';
-
-const PaginationItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentProps<'li'>
->(({ className, ...props }, ref) => (
-  <li ref={ref} className={cn('', className)} {...props} />
-));
-PaginationItem.displayName = 'PaginationItem';
-
-type PaginationLinkProps = {
-  isActive?: boolean;
-} & Pick<ButtonProps, 'size'> &
-  React.ComponentProps<'a'>;
-
-const PaginationLink = ({
-  className,
-  isActive,
-  size = 'icon',
-  ...props
-}: PaginationLinkProps) => (
-  <a
-    aria-current={isActive ? 'page' : undefined}
-    className={cn(
-      buttonVariants({
-        variant: isActive ? 'outline' : 'ghost',
-        size,
-      }),
-      className
-    )}
-    {...props}
-  />
-);
-PaginationLink.displayName = 'PaginationLink';
-
-const PaginationPrevious = ({
+export function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  baseUrl,
   className,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to previous page"
-    size="default"
-    className={cn('gap-1 pl-2.5', className)}
-    {...props}
-  >
-    <ChevronLeft className="h-4 w-4" />
-    <span>Previous</span>
-  </PaginationLink>
-);
-PaginationPrevious.displayName = 'PaginationPrevious';
+}: PaginationProps) {
+  // Tính toán các trang sẽ hiển thị
+  const generatePages = () => {
+    // Luôn hiển thị trang đầu, trang cuối, trang hiện tại và 1 trang trước/sau trang hiện tại
+    const pages = new Set<number>()
+    pages.add(1) // Trang đầu
+    pages.add(totalPages) // Trang cuối
+    
+    // Trang hiện tại và các trang xung quanh
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      pages.add(i)
+    }
+    
+    // Chuyển thành mảng và sắp xếp
+    return Array.from(pages).sort((a, b) => a - b)
+  }
 
-const PaginationNext = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to next page"
-    size="default"
-    className={cn('gap-1 pr-2.5', className)}
-    {...props}
-  >
-    <span>Next</span>
-    <ChevronRight className="h-4 w-4" />
-  </PaginationLink>
-);
-PaginationNext.displayName = 'PaginationNext';
+  const pages = generatePages()
+  
+  // Tạo các phần tử phân trang
+  const renderPageItems = () => {
+    const items: React.ReactNode[] = []
+    
+    pages.forEach((page, index) => {
+      // Thêm dấu "..." nếu có khoảng cách giữa các trang
+      if (index > 0 && pages[index] - pages[index - 1] > 1) {
+        items.push(
+          <div key={`ellipsis-${index}`} className="flex items-center justify-center">
+            <MoreHorizontal className="h-4 w-4 text-[#A0A0A0]" />
+          </div>
+        )
+      }
+      
+      // Thêm nút trang
+      items.push(
+        baseUrl ? (
+          <Link
+            key={page}
+            href={`${baseUrl}${page === 1 ? "" : `?page=${page}`}`}
+            className={cn(
+              "pagination-item",
+              currentPage === page ? "active" : ""
+            )}
+          >
+            {page}
+          </Link>
+        ) : (
+          <button
+            key={page}
+            onClick={() => onPageChange?.(page)}
+            className={cn(
+              "pagination-item",
+              currentPage === page ? "active" : ""
+            )}
+            disabled={currentPage === page}
+          >
+            {page}
+          </button>
+        )
+      )
+    })
+    
+    return items
+  }
 
-const PaginationEllipsis = ({
-  className,
-  ...props
-}: React.ComponentProps<'span'>) => (
-  <span
-    aria-hidden
-    className={cn('flex h-9 w-9 items-center justify-center', className)}
-    {...props}
-  >
-    <MoreHorizontal className="h-4 w-4" />
-    <span className="sr-only">More pages</span>
-  </span>
-);
-PaginationEllipsis.displayName = 'PaginationEllipsis';
+  // Xử lý nút Previous
+  const prevPage = currentPage > 1 ? currentPage - 1 : null
+  
+  // Xử lý nút Next
+  const nextPage = currentPage < totalPages ? currentPage + 1 : null
 
-export {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-};
+  return (
+    <nav
+      role="navigation"
+      aria-label="Phân trang"
+      className={cn("mx-auto flex w-full justify-center", className)}
+      {...props}
+    >
+      <div className="flex items-center space-x-2">
+        {/* Nút Previous */}
+        {baseUrl ? (
+          <Link
+            href={prevPage ? `${baseUrl}${prevPage === 1 ? "" : `?page=${prevPage}`}` : "#"}
+            className={cn(
+              "pagination-nav",
+              !prevPage && "pointer-events-none opacity-50"
+            )}
+            aria-disabled={!prevPage}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            <span>Trước</span>
+          </Link>
+        ) : (
+          <button
+            onClick={() => prevPage && onPageChange?.(prevPage)}
+            className="pagination-nav"
+            disabled={!prevPage}
+            aria-disabled={!prevPage}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            <span>Trước</span>
+          </button>
+        )}
+        
+        {/* Các trang */}
+        {renderPageItems()}
+        
+        {/* Nút Next */}
+        {baseUrl ? (
+          <Link
+            href={nextPage ? `${baseUrl}?page=${nextPage}` : "#"}
+            className={cn(
+              "pagination-nav",
+              !nextPage && "pointer-events-none opacity-50"
+            )}
+            aria-disabled={!nextPage}
+          >
+            <span>Tiếp</span>
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Link>
+        ) : (
+          <button
+            onClick={() => nextPage && onPageChange?.(nextPage)}
+            className="pagination-nav"
+            disabled={!nextPage}
+            aria-disabled={!nextPage}
+          >
+            <span>Tiếp</span>
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </button>
+        )}
+      </div>
+    </nav>
+  )
+}

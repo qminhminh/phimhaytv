@@ -1,6 +1,8 @@
 import { getLatestMovies, getMoviesList } from '@/lib/api';
 import HeroSection from '@/components/shared/HeroSection';
 import MovieCarousel from '@/components/shared/MovieCarousel';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 
 export default async function Home() {
   const latestMovies = await getLatestMovies();
@@ -21,7 +23,15 @@ export default async function Home() {
       <HeroSection movies={featuredMovies} />
       
       <div className="container mx-auto px-4 py-8">
-        <MovieCarousel title="Phim Mới Cập Nhật" movies={newMovies} />
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-[#EAEAEA]">Phim Mới Cập Nhật</h2>
+          <Link href="/latest" className="flex items-center text-sm text-primary hover:underline">
+            Xem tất cả
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Link>
+        </div>
+        <MovieCarousel movies={newMovies} />
+        
         <MovieCarousel title="Phim Lẻ Mới" movies={singleMovies.items} />
         <MovieCarousel title="Phim Bộ Mới" movies={seriesMovies.items} />
         <MovieCarousel title="TV Shows" movies={tvShows.items} />
