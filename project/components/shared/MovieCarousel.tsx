@@ -1,0 +1,92 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import MovieCard from './MovieCard';
+
+interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  year: string;
+  genre: string;
+  rating: string;
+  type: 'movie' | 'tv';
+}
+
+interface MovieCarouselProps {
+  title: string;
+  movies: Movie[];
+}
+
+export default function MovieCarousel({ title, movies }: MovieCarouselProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 320; // Width of one card plus gap
+      const newScrollLeft = direction === 'left' 
+        ? scrollRef.current.scrollLeft - scrollAmount
+        : scrollRef.current.scrollLeft + scrollAmount;
+      
+      scrollRef.current.scrollTo({
+        left: newScrollLeft,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  return (
+    <div className="relative mb-8">
+      <h2 className="text-2xl font-bold text-[#EAEAEA] mb-4 px-4 sm:px-6 lg:px-8">
+        {title}
+      </h2>
+      
+      <div className="relative group">
+        {/* Left Arrow */}
+        <button
+          onClick={() => scroll('left')}
+          className={`absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-[#121212]/80 hover:bg-[#121212] text-[#EAEAEA] p-2 rounded-full transition-all duration-200 ${
+            canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        
+        {/* Right Arrow */}
+        <button
+          onClick={() => scroll('right')}
+          className={`absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-[#121212]/80 hover:bg-[#121212] text-[#EAEAEA] p-2 rounded-full transition-all duration-200 ${
+            canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+        
+        {/* Carousel */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex overflow-x-auto scrollbar-thin gap-4 px-4 sm:px-6 lg:px-8 pb-4"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {movies.map((movie) => (
+            <div key={movie.id} className="flex-none w-64">
+              <MovieCard {...movie} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

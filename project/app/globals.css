@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --background: #121212;
+  --foreground: #EAEAEA;
+  --primary: #FFD700;
+  --secondary: #A0A0A0;
+  --accent: #1A1A1A;
+  --border: #2A2A2A;
+  --card: #1E1E1E;
+  --muted: #666666;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.gradient-overlay {
+  background: linear-gradient(135deg, rgba(18, 18, 18, 0.8) 0%, rgba(18, 18, 18, 0.4) 100%);
+}
+
+.hero-gradient {
+  background: linear-gradient(90deg, rgba(18, 18, 18, 0.9) 0%, rgba(18, 18, 18, 0.6) 50%, rgba(18, 18, 18, 0.3) 100%);
+}
+
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.navbar-blur {
+  backdrop-filter: blur(10px);
+  background-color: rgba(18, 18, 18, 0.8);
+}
+
+.navbar-solid {
+  background-color: #121212;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #FFD700 #1A1A1A;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #1A1A1A;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #FFD700;
+  border-radius: 4px;
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  }
+}
