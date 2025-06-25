@@ -1,6 +1,7 @@
 import { getMovieBySlug, getLatestMovies, Episode, EpisodeServerData } from '@/lib/api';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { Metadata } from 'next';
 
 type WatchPageProps = {
     params: {
@@ -11,6 +12,32 @@ type WatchPageProps = {
         server?: string;
     }
 };
+
+export async function generateMetadata({ params, searchParams }: WatchPageProps): Promise<Metadata> {
+    const { movie_slug, episode_slug } = params;
+    const data = await getMovieBySlug(movie_slug);
+    
+    if (!data || !data.movie) {
+        return {
+            title: 'Không tìm thấy phim | PhimHayTV',
+        };
+    }
+
+    const { movie, episodes } = data;
+    const currentEpisodeData = findEpisode(episodes, episode_slug, searchParams.server);
+    const episodeName = currentEpisodeData ? currentEpisodeData.episode.name : 'Tập mới nhất';
+
+    return {
+        title: `Xem ${movie.name} - ${episodeName} | PhimHayTV`,
+        description: `Xem phim ${movie.name} (${movie.origin_name}) - ${episodeName} full HD, vietsub, thuyết minh miễn phí tại PhimHayTV.`,
+        openGraph: {
+            title: `Xem ${movie.name} - ${episodeName}`,
+            description: `Xem phim ${movie.name} - ${episodeName} full HD, vietsub, thuyết minh miễn phí.`,
+            images: [movie.poster_url || movie.thumb_url],
+            type: 'video.episode',
+        },
+    };
+}
 
 const findEpisode = (episodes: Episode[], episode_slug: string, server_name_query?: string): { episode: EpisodeServerData, serverName: string } | null => {
     // Ưu tiên tìm kiếm trong server được chỉ định qua query param
@@ -84,9 +111,9 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
 
                 {/* Movie and Episode Info */}
                 <div className="mb-8 p-4 bg-gray-900/50 rounded-lg">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-primary">{movie.name}</h1>
-                    <h2 className="text-lg sm:text-xl text-gray-300">{`Đang xem: ${currentEpisode.name}`}</h2>
-                    <p className="text-gray-400 text-sm mt-1">{`(Server: ${formatServerName(serverName)})`}</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-primary">{`${movie.name} - ${currentEpisode.name}`}</h1>
+                    <h2 className="text-lg sm:text-xl text-gray-300 mt-1">{movie.origin_name}</h2>
+                    <p className="text-gray-400 text-sm mt-2">{`(Server: ${formatServerName(serverName)})`}</p>
                     <Link href={`/movies/${movie.slug}`} className="text-sm text-primary hover:underline mt-4 inline-block">
                         &larr; Quay lại trang thông tin phim
                     </Link>

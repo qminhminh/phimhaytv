@@ -6,11 +6,6 @@ import FilterBrowse from '@/components/shared/FilterBrowse';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export const metadata: Metadata = {
-  title: 'Phim Lẻ | Phim Hay TV',
-  description: 'Tuyển tập phim lẻ hay, phim lẻ mới nhất, cập nhật liên tục tại Phim Hay TV',
-};
-
 interface PhimLePageProps {
   searchParams: {
     page?: string;
@@ -21,6 +16,31 @@ interface PhimLePageProps {
     sort_type?: string;
     sort_lang?: string;
   };
+}
+
+export async function generateMetadata({ searchParams }: PhimLePageProps): Promise<Metadata> {
+    // Gọi API một lần để lấy dữ liệu, bao gồm cả thông tin SEO
+    const data = await getSingleMovies({
+        page: searchParams.page ? parseInt(searchParams.page) : 1,
+        filterCategory: searchParams.category ? [searchParams.category] : undefined,
+        filterCountry: searchParams.country ? [searchParams.country] : undefined,
+        filterYear: searchParams.year ? [searchParams.year] : undefined,
+    });
+
+    const seoData = data?.data?.seoOnPage;
+
+    const title = seoData?.titleHead || 'Phim Lẻ Hay Tuyển Chọn | PhimHayTV';
+    const description = seoData?.descriptionHead || 'Tuyển tập phim lẻ, phim mới nhất thuộc nhiều thể loại, quốc gia. Cập nhật liên tục tại PhimHayTV.';
+    
+    return {
+        title,
+        description,
+        openGraph: {
+            title,
+            description,
+            type: 'website',
+        },
+    };
 }
 
 export default async function PhimLePage({ searchParams }: PhimLePageProps) {

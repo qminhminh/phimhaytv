@@ -3,6 +3,18 @@ import HeroSection from '@/components/shared/HeroSection';
 import CardViewMovie from '@/components/shared/CardViewMovie';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'PhimHayTV - Xem Phim Mới, Phim HD Online Miễn Phí',
+  description: 'PhimHayTV là website xem phim online miễn phí, cập nhật các bộ phim mới, phim hot, phim chiếu rạp nhanh nhất với chất lượng HD, vietsub, thuyết minh.',
+  openGraph: {
+    title: 'PhimHayTV - Xem Phim Mới, Phim HD Online Miễn Phí',
+    description: 'Xem phim online miễn phí, cập nhật phim mới, phim hot, phim chiếu rạp nhanh nhất.',
+    images: ['/og-image.jpg'], // Bạn nên tạo một ảnh đại diện cho website và đặt trong thư mục public
+    type: 'website',
+  },
+};
 
 export default async function Home() {
   // Lấy dữ liệu phim tuần tự
@@ -22,6 +34,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[#121212]">
+      <h1 className="sr-only">PhimHayTV - Xem Phim Online, Phim Mới, Phim HD</h1>
       <HeroSection movies={featuredMovies} />
       
       <div className="container mx-auto px-4 py-8">

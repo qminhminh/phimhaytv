@@ -3,12 +3,36 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PlayCircle, Film, Calendar, Clock, Tv, Star } from 'lucide-react';
+import { Metadata } from 'next';
 
 type MovieDetailPageProps = {
     params: {
         slug: string;
     };
 };
+
+export async function generateMetadata({ params }: MovieDetailPageProps): Promise<Metadata> {
+    const data = await getMovieBySlug(params.slug);
+
+    if (!data || !data.movie) {
+        return {
+            title: 'Không tìm thấy phim | PhimHayTV',
+        };
+    }
+
+    const { movie } = data;
+
+    return {
+        title: `${movie.name} (${movie.year}) | PhimHayTV`,
+        description: movie.content,
+        openGraph: {
+            title: `${movie.name} (${movie.year})`,
+            description: movie.content,
+            images: [movie.poster_url || movie.thumb_url],
+            type: 'video.movie',
+        },
+    };
+}
 
 const formatServerName = (name: string) => {
     return name.replace(/^#/, '').trim();
