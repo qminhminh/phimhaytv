@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Play, Calendar, Clock, Star, Tag, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MediaPlayer from '@/components/shared/MediaPlayer';
+import { notFound } from 'next/navigation';
 
 interface TVShowDetailPageProps {
   params: {
@@ -13,6 +14,14 @@ interface TVShowDetailPageProps {
 
 export async function generateMetadata({ params }: TVShowDetailPageProps): Promise<Metadata> {
   const seriesData = await getMovieDetail(params.id);
+
+  if (!seriesData || !seriesData.item) {
+    return {
+      title: 'Không tìm thấy phim | PhimHayTV',
+      description: 'Phim bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.',
+    };
+  }
+  
   const series = seriesData.item;
 
   return {
@@ -24,29 +33,13 @@ export async function generateMetadata({ params }: TVShowDetailPageProps): Promi
   };
 }
 
-// Hàm này cần thiết cho cấu hình output: export
-export async function generateStaticParams() {
-  try {
-    // Lấy danh sách phim bộ/TV Shows để tạo các trang tĩnh
-    const tvShows = await getMoviesList('tv-shows', { limit: 20 });
-    const series = await getMoviesList('phim-bo', { limit: 20 });
-    
-    // Kết hợp cả hai danh sách
-    const allShows = [...(tvShows?.data?.items || []), ...(series?.data?.items || [])];
-    
-    // Trả về mảng các tham số cho trang
-    return allShows.map((show) => ({
-      id: show.slug,
-    }));
-  } catch (error) {
-    console.error('Lỗi khi tạo trang tĩnh cho phim bộ/TV Shows:', error);
-    // Trả về một mảng với ít nhất một giá trị mặc định để tránh lỗi
-    return [{ id: 'default-tvshow' }];
-  }
-}
-
 export default async function TVShowDetailPage({ params }: TVShowDetailPageProps) {
   const seriesData = await getMovieDetail(params.id);
+
+  if (!seriesData || !seriesData.item) {
+    notFound();
+  }
+
   const series = seriesData.item;
   
   // Lấy tập đầu tiên nếu có
