@@ -1,17 +1,17 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { getTVSeries, getCategories, getCountries } from '@/lib/api';
-import PhimBoList from '@/components/shared/CardViewMovie';
+import { getCartoons, getCategories, getCountries } from '@/lib/api';
+import CardViewMovie from '@/components/shared/CardViewMovie';
 import FilterBrowse from '@/components/shared/FilterBrowse';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
-  title: 'Phim Bộ | Phim Hay TV',
-  description: 'Danh sách phim bộ mới nhất, phim bộ hay nhất, phim bộ cập nhật liên tục tại Phim Hay TV',
+  title: 'Phim Hoạt Hình | Phim Hay TV',
+  description: 'Danh sách phim hoạt hình mới nhất, phim hoạt hình hay nhất, cập nhật liên tục tại Phim Hay TV',
 };
 
-interface PhimBoPageProps {
+interface HoatHinhPageProps {
   searchParams: {
     page?: string;
     category?: string;
@@ -23,7 +23,7 @@ interface PhimBoPageProps {
   };
 }
 
-export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
+export default async function HoatHinhPage({ searchParams }: HoatHinhPageProps) {
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   const category = searchParams.category;
   const country = searchParams.country;
@@ -32,39 +32,32 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
   const sortType = (searchParams.sort_type as 'desc' | 'asc') || 'desc';
   const sortLang = (searchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
   
-  // Lấy danh sách phim bộ từ API
-  const tvSeriesData = await getTVSeries({
+  const cartoonsData = await getCartoons({
     page,
-    filterCategory: category ? [category] : [""],
-    filterCountry: country ? [country] : [""],
-    filterYear: year ? [year] : [""],
+    filterCategory: category ? [category] : undefined,
+    filterCountry: country ? [country] : undefined,
+    filterYear: year ? [year] : undefined,
     sortField,
     sortType,
-    limit: 24
-    // Note: The API for phim-bo does not seem to support sort_lang, so it's not passed here.
+    limit: 24,
   });
   
-  // Lấy danh sách thể loại
   const categoriesData = await getCategories();
   const categories = categoriesData.items || [];
   
-  // Lấy danh sách quốc gia
   const countriesData = await getCountries();
   const countries = countriesData.items || [];
   
-  // Lấy thông tin từ API
-  const items = tvSeriesData.data.items;
-  const pagination = tvSeriesData.data.params.pagination;
+  const items = cartoonsData.data.items;
+  const pagination = cartoonsData.data.params.pagination;
   const totalPages = pagination.totalPages;
-  const imageDomain = tvSeriesData.data.APP_DOMAIN_CDN_IMAGE;
+  const imageDomain = cartoonsData.data.APP_DOMAIN_CDN_IMAGE;
   
-  // Danh sách năm để lọc
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   
-  // Tạo URL cho phân trang
   const createPaginationBaseUrl = () => {
-    const url = new URL('/phim-bo', 'https://phimhaytv.com');
+    const url = new URL('/hoat-hinh', 'https://phimhaytv.com');
     
     if (category) url.searchParams.set('category', category);
     if (country) url.searchParams.set('country', country);
@@ -79,13 +72,12 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white">{tvSeriesData.data.titlePage}</h1>
-        <p className="text-gray-400 mt-2">{tvSeriesData.data.seoOnPage.descriptionHead}</p>
+        <h1 className="text-3xl font-bold text-white">{cartoonsData.data.titlePage}</h1>
+        <p className="text-gray-400 mt-2">{cartoonsData.data.seoOnPage.descriptionHead}</p>
       </div>
       
-      {/* Bộ lọc */}
       <FilterBrowse
-        baseUrl="/phim-bo"
+        baseUrl="/hoat-hinh"
         sortField={sortField}
         sortType={sortType}
         sortLang={sortLang}
@@ -97,12 +89,10 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
         years={years}
       />
       
-      {/* Danh sách phim */}
-      <Suspense fallback={<TVSeriesListSkeleton />}>
-        <PhimBoList items={items} imageDomain={imageDomain} />
+      <Suspense fallback={<MovieListSkeleton />}>
+        <CardViewMovie items={items as any} imageDomain={imageDomain} />
       </Suspense>
       
-      {/* Phân trang */}
       {totalPages > 1 && (
         <div className="mt-8 flex justify-center">
           <Pagination
@@ -116,10 +106,10 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
   );
 }
 
-function TVSeriesListSkeleton() {
+function MovieListSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {Array.from({ length: 12 }).map((_, index) => (
+      {Array.from({ length: 18 }).map((_, index) => (
         <div key={index} className="bg-neutral-900 rounded-lg overflow-hidden">
           <Skeleton className="aspect-[2/3] w-full" />
           <div className="p-3">

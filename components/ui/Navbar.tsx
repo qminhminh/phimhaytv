@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 const mainNavItems = [
   { title: 'Trang chủ', href: '/' },
   { title: 'Phim mới', href: '/latest' },
-  { title: 'Phim lẻ', href: '/movies' },
+  { title: 'Phim lẻ', href: '/phim-le' },
   { title: 'Phim bộ', href: '/phim-bo' },
   { title: 'TV Shows', href: '/tv-shows' },
   { title: 'Hoạt hình', href: '/hoat-hinh' },
@@ -16,8 +16,8 @@ const mainNavItems = [
 
 const subNavItems = [
   { title: 'Việt sub', href: '/vietsub' },
-  { title: 'Thuyết minh', href: '/thuyet-minh' },
-  { title: 'Lồng tiếng', href: '/long-tieng' },
+  { title: 'Thuyết minh', href: '/phim-thuyet-minh' },
+  { title: 'Lồng tiếng', href: '/phim-long-tieng' },
 ];
 
 export default function Navbar() {

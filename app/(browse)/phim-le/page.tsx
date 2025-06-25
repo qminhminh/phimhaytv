@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { getSingleMovies, getCategories, getCountries } from '@/lib/api';
-import PhimLeList from '@/components/shared/PhimLeList';
+import PhimBoList from '@/components/shared/CardViewMovie';
 import FilterBrowse from '@/components/shared/FilterBrowse';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -90,7 +90,7 @@ export default async function PhimLePage({ searchParams }: PhimLePageProps) {
       />
       
       <Suspense fallback={<MovieListSkeleton />}>
-        <PhimLeList items={items as any} imageDomain={imageDomain} />
+        <PhimBoList items={items as any} imageDomain={imageDomain} />
       </Suspense>
       
       {totalPages > 1 && (

@@ -467,4 +467,132 @@ export const getSingleMovies = async (
     console.error('Lỗi khi lấy danh sách phim lẻ:', error);
     throw error;
   }
+};
+
+export const getCartoons = async (
+  options?: {
+    page?: number;
+    filterCategory?: string[];
+    filterCountry?: string[];
+    filterYear?: string[];
+    filterType?: string[];
+    sortField?: string;
+    sortType?: string;
+    limit?: number;
+  }
+): Promise<TVSeriesResponse> => {
+  try {
+    const response = await axios.get<TVSeriesResponse>(`${BASE_URL}/v1/api/danh-sach/hoat-hinh`, {
+      params: {
+        page: options?.page || 1,
+        "filter[category]": options?.filterCategory,
+        "filter[country]": options?.filterCountry,
+        "filter[year]": options?.filterYear,
+        "filter[type]": options?.filterType,
+        sort_field: options?.sortField,
+        sort_type: options?.sortType,
+        limit: options?.limit || 24
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phim hoạt hình:', error);
+    throw error;
+  }
+};
+
+export const getVietSubMovies = async (
+  options?: {
+    page?: number;
+    filterCategory?: string[];
+    filterCountry?: string[];
+    filterYear?: string[];
+    filterType?: string[];
+    sortField?: string;
+    sortType?: string;
+    limit?: number;
+  }
+): Promise<TVSeriesResponse> => {
+  try {
+    const response = await axios.get<TVSeriesResponse>(`${BASE_URL}/v1/api/danh-sach/phim-vietsub`, {
+      params: {
+        page: options?.page || 1,
+        "filter[category]": options?.filterCategory,
+        "filter[country]": options?.filterCountry,
+        "filter[year]": options?.filterYear,
+        "filter[type]": options?.filterType,
+        sort_field: options?.sortField,
+        sort_type: options?.sortType,
+        limit: options?.limit || 24
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phim Vietsub:', error);
+    throw error;
+  }
+};
+
+export const getThuyetMinhMovies = async (
+  options?: {
+    page?: number;
+    filterCategory?: string[];
+    filterCountry?: string[];
+    filterYear?: string[];
+    filterType?: string[];
+    sortField?: string;
+    sortType?: string;
+    limit?: number;
+  }
+): Promise<TVSeriesResponse> => {
+  try {
+    const response = await axios.get<TVSeriesResponse>(`${BASE_URL}/v1/api/danh-sach/phim-thuyet-minh`, {
+      params: {
+        page: options?.page || 1,
+        "filter[category]": options?.filterCategory,
+        "filter[country]": options?.filterCountry,
+        "filter[year]": options?.filterYear,
+        "filter[type]": options?.filterType,
+        sort_field: options?.sortField,
+        sort_type: options?.sortType,
+        limit: options?.limit || 24
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phim Thuyết Minh:', error);
+    throw error;
+  }
+};
+
+export const getLongTiengMovies = async (
+  options?: {
+    page?: number;
+    filterCategory?: string[];
+    filterCountry?: string[];
+    filterYear?: string[];
+    filterType?: string[];
+    sortField?: string;
+    sortType?: string;
+    limit?: number;
+  }
+): Promise<TVSeriesResponse> => {
+  try {
+    const response = await axios.get<TVSeriesResponse>(`${BASE_URL}/v1/api/danh-sach/phim-long-tieng`, {
+      params: {
+        page: options?.page || 1,
+        "filter[category]": options?.filterCategory,
+        "filter[country]": options?.filterCountry,
+        "filter[year]": options?.filterYear,
+        "filter[type]": options?.filterType,
+        sort_field: options?.sortField,
+        sort_type: options?.sortType,
+        limit: options?.limit || 24
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phim Lồng Tiếng:', error);
+    throw error;
+  }
 }; 

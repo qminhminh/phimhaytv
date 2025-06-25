@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { getMoviesList, getCountries, getCategories } from '@/lib/api';
-import TVSeriesList from '@/components/shared/PhimBoList';
+import TVSeriesList from '@/components/shared/CardViewMovie';
 import { Pagination } from '@/components/ui/pagination';
 import { Metadata } from 'next';
 import FilterBrowse from '@/components/shared/FilterBrowse';
