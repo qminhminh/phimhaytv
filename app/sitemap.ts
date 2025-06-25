@@ -1,105 +1,82 @@
-import { getMoviesList } from '@/lib/api';
+import { getLatestMovies } from '@/lib/api';
 import { MetadataRoute } from 'next';
 
-export const revalidate = 86400; // Tái xác thực mỗi ngày (86400 giây)
-
-// interface này chỉ chứa các trường cần thiết cho sitemap để tránh lỗi type
-interface SitemapMovieItem {
-  _id: string;
-  slug: string;
-  type: string;
-  modified: {
-    time: string;
-  };
-}
-
-// TODO: Thay thế 'https://yourdomain.com' bằng tên miền thực tế của bạn
 const BASE_URL = 'https://phimhaytv.top';
+const MOVIES_PER_SITEMAP = 4000; 
 
-const movieTypes = [
-  'phim-le',
-  'phim-bo',
-  'tv-shows',
-  'hoat-hinh',
-  'phim-vietsub',
-  'phim-thuyet-minh',
-  'phim-long-tieng',
-] as const;
+export async function generateSitemaps() {
+    // API phimhay.tv hiện tại không có endpoint để lấy tổng số phim,
+    // nên chúng ta sẽ tạm giả định một con số đủ lớn để phân trang.
+    // Giả sử có khoảng 20000 phim, chia thành các sitemap.
+    const totalMovies = 20000; 
+    const amountOfSitemaps = Math.ceil(totalMovies / MOVIES_PER_SITEMAP);
 
-type MovieType = typeof movieTypes[number];
-
-async function getAllMovies(type: MovieType): Promise<SitemapMovieItem[]> {
-  const movies: SitemapMovieItem[] = [];
-  let currentPage = 1;
-  let totalPages = 1;
-  let retries = 3;
-
-  do {
-    try {
-      // Giới hạn 50 mục mỗi trang để không quá tải API
-      const response = await getMoviesList(type, { page: currentPage, limit: 50 });
-      if (response.data && response.data.items && response.data.items.length > 0) {
-        movies.push(...response.data.items);
-        totalPages = response.data.params.pagination.totalPages;
-        currentPage++;
-        retries = 3; // Reset retries on success
-      } else {
-        break; // Thoát nếu không có mục nào được trả về
-      }
-    } catch (error) {
-      console.error(`Lỗi khi tìm nạp trang ${currentPage} cho loại "${type}":`, error);
-      retries--;
-      if (retries <= 0) {
-          console.error(`Bỏ qua loại "${type}" sau nhiều lần thử lại không thành công.`);
-          break;
-      }
-      // Chờ một chút trước khi thử lại
-      await new Promise(res => setTimeout(res, 1000));
-    }
-  } while (currentPage <= totalPages);
-
-  return movies;
+    const sitemaps = Array.from({ length: amountOfSitemaps }, (_, i) => ({ id: i }));
+    
+    return sitemaps;
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // 1. Các tuyến đường tĩnh
-  const staticRoutes = [
+async function getMoviesForSitemap(page: number, limit: number): Promise<MetadataRoute.Sitemap> {
+    try {
+        // Sử dụng hàm getLatestMovies, vì API không có endpoint "tất cả phim" ổn định
+        const response = await getLatestMovies({ page, limit });
+        if (response?.items) {
+            return response.items.map((item: any) => {
+                const path = item.type === 'single' ? 'movies' : 'tv-shows';
+                return {
+                    url: `${BASE_URL}/${path}/${item.slug}`,
+                    lastModified: new Date(item.modified.time).toISOString(),
+                    changeFrequency: 'weekly',
+                    priority: 0.9,
+                };
+            });
+        }
+        return [];
+    } catch (error) {
+        console.error(`Error fetching movies for sitemap page ${page}:`, error);
+        return [];
+    }
+}
+
+// Sitemap cho các trang tĩnh sẽ được xử lý riêng
+const staticSitemap: MetadataRoute.Sitemap = [
     '/',
     '/latest',
+    '/movies',
     '/phim-le',
     '/phim-bo',
     '/tv-shows',
     '/hoat-hinh',
-    '/phim-vietsub',
     '/phim-thuyet-minh',
     '/phim-long-tieng',
+    '/vietsub',
     '/search',
     '/auth/login',
     '/auth/register',
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
     lastModified: new Date().toISOString(),
-    changeFrequency: 'daily' as 'daily',
+    changeFrequency: 'daily',
     priority: 0.8,
-  }));
+}));
 
-  // 2. Các tuyến đường động (phim và chương trình TV)
-  const allMoviesPromises = movieTypes.map(type => getAllMovies(type));
-  const allMoviesArrays = await Promise.all(allMoviesPromises);
-  const allItems = allMoviesArrays.flat();
+export default async function sitemap({ id }: { id: number }): Promise<MetadataRoute.Sitemap> {
+    
+    // Sitemap cho trang tĩnh sẽ được Next.js tự động tạo tại /sitemap-static.xml
+    // nếu chúng ta tạo một file sitemap-static.ts riêng.
+    // Tuy nhiên, để đơn giản, ta sẽ trả về các trang phim ở đây.
+    // Next.js v14 sẽ merge sitemap này với sitemap tĩnh được định nghĩa trong file khác.
+    // Nhưng cách tiếp cận hiện tại là tạo file /sitemap.xml động cho phim.
 
-  // Loại bỏ các mục trùng lặp bằng _id
-  const uniqueItems = Array.from(new Map(allItems.map(item => [item._id, item])).values());
+    // ID từ generateSitemaps là số, nên ta ép kiểu trực tiếp.
+    const pageNumber = id + 1; // id là 0-indexed, page của API là 1-indexed
+    const movieRoutes = await getMoviesForSitemap(pageNumber, MOVIES_PER_SITEMAP);
 
-  const dynamicUrls = uniqueItems.map((item) => {
-    const path = item.type === 'series' || item.type === 'tv_series' ? '/tv-shows' : '/movies';
-    return {
-      url: `${BASE_URL}${path}/${item.slug}`,
-      lastModified: new Date(item.modified.time).toISOString(),
-      changeFrequency: 'weekly' as 'weekly',
-      priority: 1.0,
-    };
-  });
-
-  return [...staticRoutes, ...dynamicUrls];
+    // Ở phiên bản Next.js mới, bạn có thể tạo một file app/static-sitemap.ts riêng.
+    // Để giữ cho logic tập trung, ta sẽ kết hợp các trang tĩnh vào sitemap đầu tiên (id=0)
+    if (id === 0) {
+        return [...staticSitemap, ...movieRoutes];
+    }
+    
+    return movieRoutes;
 } 

@@ -2,36 +2,6 @@ import { getMovieBySlug, getLatestMovies, Episode, EpisodeServerData } from '@/l
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
-export async function generateStaticParams() {
-    const moviesData = await getLatestMovies({ limit: 20 });
-    if (!moviesData || !moviesData.items) {
-        return [];
-    }
-
-    const params: { movie_slug: string; episode_slug: string }[] = [];
-
-    for (const movie of moviesData.items) {
-        try {
-            const detailData = await getMovieBySlug(movie.slug);
-            if (detailData && detailData.episodes) {
-                for (const server of detailData.episodes) {
-                    for (const episode of server.server_data) {
-                        params.push({
-                            movie_slug: movie.slug,
-                            episode_slug: episode.slug,
-                        });
-                    }
-                }
-            }
-        } catch (error) {
-            console.error(`Could not generate params for movie ${movie.slug}`, error);
-        }
-    }
-
-    return params;
-}
-
-
 type WatchPageProps = {
     params: {
         movie_slug: string;
