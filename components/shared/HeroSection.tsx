@@ -125,15 +125,6 @@ export default function HeroSection({ movies }: HeroSectionProps) {
                   Xem Ngay
                 </Button>
               </Link>
-              
-              <Link href={getLink(movie)}>
-                <Button 
-                  className="border border-[#EAEAEA] text-[#EAEAEA] hover:bg-[#EAEAEA] hover:text-[#121212] px-8 py-3 text-lg h-11 rounded-md"
-                >
-                  <Info className="mr-2 h-5 w-5" />
-                  Thông Tin
-                </Button>
-              </Link>
             </div>
           </div>
         </div>

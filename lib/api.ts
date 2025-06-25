@@ -355,7 +355,7 @@ export const searchMovies = async (
 
 // Lấy danh sách thể loại phim
 export const getCategories = async () => {
-  const url = `${BASE_URL}/api/the-loai`;
+  const url = `${BASE_URL}/the-loai`;
   try {
     const response = await axios.get(url);
     // Map lại _id thành id

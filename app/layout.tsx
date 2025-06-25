@@ -13,15 +13,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="vi">
       <body className={inter.className}>
         <div className="min-h-screen bg-[#121212] text-[#EAEAEA]">
           <Navbar />
-          <main>{children}</main>
+          <main className="pt-16">{children}</main>
           <Footer />
         </div>
       </body>

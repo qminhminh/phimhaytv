@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import MovieCard from '../../components/shared/MovieCard';
+import { Movie } from '@/lib/api';
 
 // Sample user data
 const userData = {
@@ -39,24 +40,56 @@ const watchHistory = [
   }
 ];
 
-const myList = [
+const myList: Movie[] = [
   {
-    id: "2",
-    title: "The Matrix",
-    poster: "https://images.pexels.com/photos/7991663/pexels-photo-7991663.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
-    year: "1999",
-    genre: "Action, Sci-Fi",
-    rating: "R",
-    type: "movie" as const
+    _id: "2",
+    name: "The Matrix",
+    origin_name: "The Matrix",
+    slug: "the-matrix",
+    thumb_url: "https://images.pexels.com/photos/7991663/pexels-photo-7991663.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
+    poster_url: "https://images.pexels.com/photos/7991663/pexels-photo-7991663.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
+    year: 1999,
+    category: ["Action", "Sci-Fi"],
+    country: ["USA"],
+    type: "single",
+    status: "Completed",
+    sub_docquyen: false,
+    chieurap: true,
+    trailer_url: "",
+    time: "136 min",
+    episode_current: "Full",
+    episode_total: "1",
+    quality: "HD",
+    lang: "Vietsub",
+    content: "A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.",
+    modified: {
+      time: "2023-10-27T04:08:16.000Z"
+    }
   },
   {
-    id: "3",
-    title: "Interstellar",
-    poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
-    year: "2014",
-    genre: "Drama, Sci-Fi",
-    rating: "PG-13",
-    type: "movie" as const
+    _id: "3",
+    name: "Interstellar",
+    origin_name: "Interstellar",
+    slug: "interstellar",
+    thumb_url: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
+    poster_url: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop",
+    year: 2014,
+    category: ["Adventure", "Drama", "Sci-Fi"],
+    country: ["USA"],
+    type: "single",
+    status: "Completed",
+    sub_docquyen: false,
+    chieurap: true,
+    trailer_url: "",
+    time: "169 min",
+    episode_current: "Full",
+    episode_total: "1",
+    quality: "HD",
+    lang: "Vietsub",
+    content: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
+    modified: {
+      time: "2023-10-26T14:20:05.000Z"
+    }
   }
 ];
 
@@ -186,7 +219,7 @@ export default function ProfilePage() {
           <TabsContent value="watchlist">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {myList.map((item) => (
-                <MovieCard key={item.id} {...item} />
+                <MovieCard key={item._id} movie={item} />
               ))}
             </div>
             {myList.length === 0 && (

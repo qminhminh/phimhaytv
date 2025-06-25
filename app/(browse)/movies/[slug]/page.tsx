@@ -4,23 +4,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { PlayCircle, Film, Calendar, Clock, Tv, Star } from 'lucide-react';
 
-export async function generateStaticParams() {
-    const data = await getLatestMovies({ limit: 50 });
-
-    if (!data || !data.items) {
-        return [];
-    }
-
-    return data.items.map((movie) => ({
-        slug: movie.slug,
-    }));
-}
-
 type MovieDetailPageProps = {
     params: {
         slug: string;
     };
 };
+
+const formatServerName = (name: string) => {
+    return name.replace(/^#/, '').trim();
+}
 
 export default async function MovieDetailPage({ params }: MovieDetailPageProps) {
     const { slug } = params;
@@ -113,12 +105,12 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
                     <h3 className="text-3xl font-bold mb-6 border-l-4 border-primary pl-4 text-primary">Danh Sách Tập</h3>
                     {episodes.map((episode) => (
                         <div key={episode.server_name} className="mb-8">
-                            <h4 className="text-xl font-semibold mb-4 p-3 bg-gray-800/50 rounded-t-lg">{episode.server_name}</h4>
+                            <h4 className="text-xl font-semibold mb-4 p-3 bg-gray-800/50 rounded-t-lg">{formatServerName(episode.server_name)}</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 p-4 bg-background/50 backdrop-blur-sm rounded-b-lg">
                                 {episode.server_data.map((data) => (
                                     <Link 
-                                        key={data.slug}
-                                        href={`/watch/${movie.slug}/${data.slug}`}
+                                        key={`${episode.server_name}-${data.slug}`}
+                                        href={`/watch/${movie.slug}/${data.slug}?server=${encodeURIComponent(episode.server_name)}`}
                                         className="text-center bg-gray-700 hover:bg-primary text-white font-medium py-2 px-3 rounded-md transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg"
                                     >
                                         {data.name}
