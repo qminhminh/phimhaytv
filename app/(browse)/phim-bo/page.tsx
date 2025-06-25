@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { getTVSeries, getCategories, getCountries } from '@/lib/api';
-import PhimBoList from '@/components/shared/CardViewMovie';
+import CardViewMovie from '@/components/shared/CardViewMovie';
 import FilterBrowse from '@/components/shared/FilterBrowse';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -99,7 +99,7 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
       
       {/* Danh sách phim */}
       <Suspense fallback={<TVSeriesListSkeleton />}>
-        <PhimBoList items={items} imageDomain={imageDomain} />
+        <CardViewMovie items={items} imageDomain={imageDomain} />
       </Suspense>
       
       {/* Phân trang */}

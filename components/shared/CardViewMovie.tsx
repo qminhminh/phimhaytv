@@ -39,14 +39,37 @@ interface TVSeriesItem {
   lang: string;
   tmdb: TMDB;
   time: string;
+  type?: string;
 }
 
-interface TVSeriesListProps {
+interface CardViewMovieProps {
   items: TVSeriesItem[];
   imageDomain: string;
 }
 
-const TVSeriesList: React.FC<TVSeriesListProps> = ({ items, imageDomain }) => {
+const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => {
+  
+  const getLink = (item: TVSeriesItem) => {
+    switch (item.type) {
+      case 'single':
+        return `/phim-le/${item.slug}`;
+      case 'series':
+      case 'hoathinh':
+      case 'tvshows':
+        return `/tv-shows/${item.slug}`;
+      default:
+        return `/phim-bo/${item.slug}`;
+    }
+  };
+
+  const getImageUrl = (item: TVSeriesItem) => {
+    const fallbackDomain = 'https://phimimg.com';
+    const imageUrl = item.poster_url || item.thumb_url;
+    if (!imageUrl) return ''; // Trả về chuỗi rỗng nếu không có URL
+    if (imageUrl.startsWith('http')) return imageUrl;
+    return `${imageDomain || fallbackDomain}/${imageUrl}`;
+  };
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
       {items.map((item) => (
@@ -54,10 +77,10 @@ const TVSeriesList: React.FC<TVSeriesListProps> = ({ items, imageDomain }) => {
           key={item._id}
           className="relative group bg-neutral-900 rounded-lg shadow-lg overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
         >
-          <Link href={`/phim-bo/${item.slug}`}>
+          <Link href={getLink(item)}>
             <div className="relative aspect-[2/3] overflow-hidden">
               <Image
-                src={`${imageDomain}/${item.poster_url || item.thumb_url}`}
+                src={getImageUrl(item)}
                 alt={item.name}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -83,7 +106,7 @@ const TVSeriesList: React.FC<TVSeriesListProps> = ({ items, imageDomain }) => {
           </Link>
           
           <div className="p-3">
-            <Link href={`/phim-bo/${item.slug}`}>
+            <Link href={getLink(item)}>
               <h3 className="font-semibold text-white line-clamp-1 hover:text-yellow-500 transition-colors">{item.name}</h3>
             </Link>
             <p className="text-xs text-gray-400 mt-1 line-clamp-1">{item.origin_name}</p>
@@ -134,4 +157,4 @@ const TVSeriesList: React.FC<TVSeriesListProps> = ({ items, imageDomain }) => {
   );
 };
 
-export default TVSeriesList; 
+export default CardViewMovie; 

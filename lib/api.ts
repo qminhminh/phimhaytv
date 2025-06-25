@@ -206,40 +206,6 @@ export const getMovieDetail = async (slug: string) => {
   }
 };
 
-// Tổng hợp danh sách phim
-export const getMoviesList = async (
-  typeList: string,
-  options?: {
-    page?: number;
-    sortField?: 'modified.time' | '_id' | 'year';
-    sortType?: 'desc' | 'asc';
-    sortLang?: 'vietsub' | 'thuyet-minh' | 'long-tieng';
-    category?: string;
-    country?: string;
-    year?: number;
-    limit?: number;
-  }
-): Promise<MovieListApiResponse> => {
-  try {
-    const response = await axios.get<MovieListApiResponse>(`${BASE_URL}/v1/api/danh-sach/${typeList}`, {
-      params: {
-        page: options?.page || 1,
-        sort_field: options?.sortField || 'modified.time',
-        sort_type: options?.sortType || 'desc',
-        sort_lang: options?.sortLang,
-        category: options?.category,
-        country: options?.country,
-        year: options?.year,
-        limit: options?.limit || 24
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Lỗi khi lấy danh sách phim:', error);
-    throw error;
-  }
-};
-
 // Tìm kiếm phim
 export const searchMovies = async (
   keyword: string,

@@ -3,11 +3,16 @@
 import { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MovieCard from './MovieCard';
-import { Movie } from '@/lib/api';
+
+// Sử dụng một kiểu chung hơn để chấp nhận nhiều loại movie object
+interface GenericMovie {
+  _id: string;
+  [key: string]: any; // Chấp nhận các trường khác
+}
 
 interface MovieCarouselProps {
   title?: string;
-  movies?: Movie[];
+  movies?: GenericMovie[];
 }
 
 export default function MovieCarousel({ title, movies = [] }: MovieCarouselProps) {
@@ -80,7 +85,8 @@ export default function MovieCarousel({ title, movies = [] }: MovieCarouselProps
         >
           {movies.map((movie) => (
             <div key={movie._id} className="flex-none w-64">
-              <MovieCard movie={movie} />
+              {/* Truyền movie như một object `any` để MovieCard có thể xử lý */}
+              <MovieCard movie={movie as any} />
             </div>
           ))}
         </div>

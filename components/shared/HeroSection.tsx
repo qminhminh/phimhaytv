@@ -2,12 +2,25 @@
 
 import { Play, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Movie } from '@/lib/api';
 import Link from 'next/link';
 import { useState } from 'react';
 
+// Sử dụng một kiểu chung hơn để chấp nhận nhiều loại movie object
+interface GenericMovie {
+  _id: string;
+  poster_url?: string;
+  thumb_url?: string;
+  name?: string;
+  year?: number;
+  quality?: string;
+  time?: string;
+  content?: string;
+  slug?: string;
+  [key: string]: any; // Chấp nhận các trường khác
+}
+
 interface HeroSectionProps {
-  movies: Movie[];
+  movies: GenericMovie[];
 }
 
 export default function HeroSection({ movies }: HeroSectionProps) {
