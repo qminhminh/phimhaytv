@@ -249,25 +249,20 @@ export const getMoviesList = async (
         limit: options.limit || 24,
       }
     });
-    // API này có thể trả về dữ liệu trực tiếp hoặc trong một object, cần chuẩn hóa
-    if (response.data && response.data.data) {
-      return response.data;
-    }
-    // Giả định cấu trúc trả về giống TVSeriesResponse nếu không có data wrapper
-    return {
-      status: response.data.status ? 'success' : 'error',
-      msg: response.data.msg || '',
-      data: {
-        ...response.data,
-        // Cung cấp giá trị mặc định cho các trường có thể thiếu
-        seoOnPage: response.data.seoOnPage || { titleHead: '', descriptionHead: '' },
-        breadCrumb: response.data.breadCrumb || [],
-        params: response.data.params || { pagination: response.data.pagination },
-        APP_DOMAIN_CDN_IMAGE: response.data.APP_DOMAIN_CDN_IMAGE || 'https://phimimg.com',
-      }
-    };
+    return response.data;
   } catch (error) {
-    console.error(`Lỗi khi lấy danh sách ${type_list}:`, error);
+    if (axios.isAxiosError(error)) {
+      console.error(`Axios error fetching movie list for type "${type_list}":`, {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error(`An unexpected error occurred while fetching movie list for type "${type_list}":`, error);
+    }
     throw error;
   }
 };
@@ -306,16 +301,41 @@ export const getLatestMovies = async (
     });
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy phim mới cập nhật:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching latest movies:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error('An unexpected error occurred while fetching latest movies:', error);
+    }
     throw error;
   }
 };
 
 // Thông tin Phim & Danh sách tập phim
 export const getMovieDetail = async (slug: string) => {
-  const url = `${BASE_URL}/api/phim/${slug}`;
-  const response = await axios.get<MovieDetailResponse>(url);
-  return response.data;
+  try {
+    const response = await axios.get<MovieDetailResponse>(`${BASE_URL}/v1/api/phim/${slug}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error(`Axios error fetching movie detail for slug "${slug}":`, {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error(`An unexpected error occurred while fetching movie detail for slug "${slug}":`, error);
+    }
+    return null; // Trả về null để không gây crash
+  }
 };
 
 // Tìm kiếm phim
@@ -348,26 +368,40 @@ export const searchMovies = async (
       });
       return response.data.data;
     } catch (error) {
-      console.error('Lỗi khi tìm kiếm phim:', error);
+      if (axios.isAxiosError(error)) {
+        console.error(`Axios error searching movies with keyword "${keyword}":`, {
+          message: error.message,
+          url: error.config?.url,
+          method: error.config?.method,
+          params: error.config?.params,
+          responseStatus: error.response?.status,
+          responseData: error.response?.data,
+        });
+      } else {
+        console.error(`An unexpected error occurred while searching movies with keyword "${keyword}":`, error);
+      }
       throw error;
     }
   };
 
 // Lấy danh sách thể loại phim
 export const getCategories = async () => {
-  const url = `${BASE_URL}/the-loai`;
   try {
-    const response = await axios.get(url);
-    // Map lại _id thành id
-    const items = response.data.map((item: any) => ({
-      id: item._id,
-      name: item.name,
-      slug: item.slug,
-    }));
-    return { status: true, items };
+    const response = await axios.get(`${BASE_URL}/v1/api/the-loai`);
+    return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy thể loại phim:', error);
-    throw error;
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching categories:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error('An unexpected error occurred while fetching categories:', error);
+    }
+    return [];
   }
 };
 
@@ -398,7 +432,18 @@ export const getMoviesByCategory = async (
     });
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy phim theo thể loại:', error);
+    if (axios.isAxiosError(error)) {
+      console.error(`Axios error fetching movies by category "${categorySlug}":`, {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error(`An unexpected error occurred while fetching movies for category "${categorySlug}":`, error);
+    }
     throw error;
   }
 };
@@ -406,16 +451,21 @@ export const getMoviesByCategory = async (
 // Lấy danh sách quốc gia
 export const getCountries = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/quoc-gia`);
-    const items = response.data.map((item: any) => ({
-      id: item._id,
-      name: item.name,
-      slug: item.slug,
-    }));
-    return { status: true, items };
+    const response = await axios.get(`${BASE_URL}/v1/api/quoc-gia`);
+    return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách quốc gia:', error);
-    throw error;
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching countries:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error('An unexpected error occurred while fetching countries:', error);
+    }
+    return [];
   }
 };
 
@@ -446,7 +496,18 @@ export const getMoviesByCountry = async (
     });
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy phim theo quốc gia:', error);
+    if (axios.isAxiosError(error)) {
+      console.error(`Axios error fetching movies by country "${countrySlug}":`, {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error(`An unexpected error occurred while fetching movies for country "${countrySlug}":`, error);
+    }
     throw error;
   }
 };
@@ -465,7 +526,7 @@ export const getMoviesByYear = async (
   }
 ) => {
   try {
-    const response = await axios.get<MovieResponse>(`${BASE_URL}/v1/api/nam/${year}`, {
+    const response = await axios.get<MovieResponse>(`${BASE_URL}/v1/api/nam-phat-hanh/${year}`, {
       params: {
         page: options?.page || 1,
         sort_field: options?.sortField || 'modified.time',
@@ -478,7 +539,18 @@ export const getMoviesByYear = async (
     });
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy phim theo năm:', error);
+    if (axios.isAxiosError(error)) {
+      console.error(`Axios error fetching movies by year "${year}":`, {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error(`An unexpected error occurred while fetching movies for year "${year}":`, error);
+    }
     throw error;
   }
 };
@@ -497,7 +569,7 @@ export const getTVSeries = async (
   }
 ): Promise<TVSeriesResponse> => {
   try {
-    const response = await axios.get<TVSeriesResponse>(`${BASE_URL}/v1/api/danh-sach/phim-bo`, {
+    const response = await axios.get<TVSeriesResponse>(`${BASE_URL}/v1/api/danh-sach/tv-shows`, {
       params: {
         page: options?.page || 1,
         "filter[category]": options?.filterCategory,
@@ -506,12 +578,23 @@ export const getTVSeries = async (
         "filter[type]": options?.filterType,
         sort_field: options?.sortField,
         sort_type: options?.sortType,
-        limit: options?.limit || 24
+        limit: options?.limit || 20
       }
     });
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách phim bộ:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching TV series:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error('An unexpected error occurred while fetching TV series:', error);
+    }
     throw error;
   }
 };
@@ -538,12 +621,23 @@ export const getSingleMovies = async (
         "filter[type]": options?.filterType,
         sort_field: options?.sortField,
         sort_type: options?.sortType,
-        limit: options?.limit || 24
+        limit: options?.limit || 20
       }
     });
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách phim lẻ:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching single movies:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error('An unexpected error occurred while fetching single movies:', error);
+    }
     throw error;
   }
 };
@@ -570,12 +664,23 @@ export const getCartoons = async (
         "filter[type]": options?.filterType,
         sort_field: options?.sortField,
         sort_type: options?.sortType,
-        limit: options?.limit || 24
+        limit: options?.limit || 20
       }
     });
     return response.data;
   } catch (error) {
-    console.error('Lỗi khi lấy danh sách phim hoạt hình:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error fetching cartoons:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+      });
+    } else {
+      console.error('An unexpected error occurred while fetching cartoons:', error);
+    }
     throw error;
   }
 };
@@ -593,15 +698,13 @@ export const getVietSubMovies = async (
     limit?: number;
   }
 ): Promise<TVSeriesResponse> => {
-  return getMoviesList('phim-vietsub', { 
-    page: options?.page,
-    category: options?.filterCategory?.join(','),
-    country: options?.filterCountry?.join(','),
-    year: options?.filterYear?.join(','),
-    sort_field: options?.sortField as any,
-    sort_type: options?.sortType as any,
-    limit: options?.limit
-  });
+  try {
+    // There might not be a direct endpoint, so we can use the general list with a language filter
+    return await getMoviesList('phim-vietsub', options);
+  } catch (error) {
+    console.error('Error fetching VietSub movies:', error);
+    throw error;
+  }
 };
 
 // Lấy danh sách phim Thuyết Minh
@@ -617,15 +720,12 @@ export const getThuyetMinhMovies = async (
     limit?: number;
   }
 ): Promise<TVSeriesResponse> => {
-  return getMoviesList('phim-thuyet-minh', {
-    page: options?.page,
-    category: options?.filterCategory?.join(','),
-    country: options?.filterCountry?.join(','),
-    year: options?.filterYear?.join(','),
-    sort_field: options?.sortField as any,
-    sort_type: options?.sortType as any,
-    limit: options?.limit
-  });
+  try {
+    return await getMoviesList('phim-thuyet-minh', options);
+  } catch (error) {
+    console.error('Error fetching Thuyet Minh movies:', error);
+    throw error;
+  }
 };
 
 // Lấy danh sách phim Lồng Tiếng
@@ -641,7 +741,12 @@ export const getLongTiengMovies = async (
     limit?: number;
   }
 ): Promise<TVSeriesResponse> => {
-  return getMoviesList('phim-long-tieng', { ...options, page: options?.page || 1 });
+  try {
+    return await getMoviesList('phim-long-tieng', options);
+  } catch (error) {
+    console.error('Error fetching Long Tieng movies:', error);
+    throw error;
+  }
 };
 
 export interface EpisodeServerData {
@@ -686,13 +791,19 @@ export interface MovieDetailData {
 export const getMovieBySlug = async (slug: string): Promise<MovieDetailData | null> => {
     try {
         const response = await axios.get<MovieDetailData>(`${BASE_URL}/phim/${slug}`);
-        if (response.data && response.data.status) {
-            return response.data;
-        }
-        console.error(`API returned status false for slug: ${slug}`);
-        return null;
+        return response.data;
     } catch (error) {
-        console.error(`Error fetching movie by slug: ${slug}`, error);
+        if (axios.isAxiosError(error)) {
+            console.error(`Axios error fetching movie by slug "${slug}":`, {
+                message: error.message,
+                url: error.config?.url,
+                method: error.config?.method,
+                responseStatus: error.response?.status,
+                responseData: error.response?.data,
+            });
+        } else {
+            console.error(`An unexpected error occurred while fetching movie by slug "${slug}":`, error);
+        }
         return null;
     }
 }; 
