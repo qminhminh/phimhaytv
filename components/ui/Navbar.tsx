@@ -3,11 +3,28 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Bell, User, Menu, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+
+const mainNavItems = [
+  { title: 'Trang chủ', href: '/' },
+  { title: 'Phim mới', href: '/latest' },
+  { title: 'Phim lẻ', href: '/movies' },
+  { title: 'Phim bộ', href: '/phim-bo' },
+  { title: 'TV Shows', href: '/tv-shows' },
+  { title: 'Hoạt hình', href: '/hoat-hinh' },
+];
+
+const subNavItems = [
+  { title: 'Việt sub', href: '/vietsub' },
+  { title: 'Thuyết minh', href: '/thuyet-minh' },
+  { title: 'Lồng tiếng', href: '/long-tieng' },
+];
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -18,6 +35,10 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const isActive = (path: string) => {
+    return pathname === path;
+  };
+
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       isScrolled ? 'navbar-solid' : 'navbar-blur'
@@ -26,26 +47,38 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="text-2xl font-bold text-[#FFD700]">CineVerse</div>
+            <div className="text-2xl font-bold text-[#FFD700]">PhimHayTV</div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
-              Home
-            </Link>
-            <Link href="/latest" className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
-              Phim Mới
-            </Link>
-            <Link href="/movies" className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
-              Movies
-            </Link>
-            <Link href="/tv-shows" className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
-              TV Shows
-            </Link>
-            <Link href="/my-list" className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
-              My List
-            </Link>
+          <div className="hidden md:flex items-center space-x-6">
+            {mainNavItems.map((item) => (
+              <Link 
+                key={item.href}
+                href={item.href} 
+                className={`text-sm font-medium transition-colors ${
+                  isActive(item.href) 
+                    ? 'text-[#FFD700]' 
+                    : 'text-[#EAEAEA] hover:text-[#FFD700]'
+                }`}
+              >
+                {item.title}
+              </Link>
+            ))}
+            
+            {subNavItems.map((item) => (
+              <Link 
+                key={item.href}
+                href={item.href} 
+                className={`text-sm font-medium transition-colors ${
+                  isActive(item.href) 
+                    ? 'text-[#FFD700]' 
+                    : 'text-gray-400 hover:text-[#FFD700]'
+                }`}
+              >
+                {item.title}
+              </Link>
+            ))}
           </div>
 
           {/* Right Side */}
@@ -117,21 +150,35 @@ export default function Navbar() {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-[#1A1A1A] rounded-lg mt-2 p-4">
-            <Link href="/" className="block py-2 text-[#EAEAEA] hover:text-[#FFD700]">
-              Home
-            </Link>
-            <Link href="/latest" className="block py-2 text-[#EAEAEA] hover:text-[#FFD700]">
-              Phim Mới
-            </Link>
-            <Link href="/movies" className="block py-2 text-[#EAEAEA] hover:text-[#FFD700]">
-              Movies
-            </Link>
-            <Link href="/tv-shows" className="block py-2 text-[#EAEAEA] hover:text-[#FFD700]">
-              TV Shows
-            </Link>
-            <Link href="/my-list" className="block py-2 text-[#EAEAEA] hover:text-[#FFD700]">
-              My List
-            </Link>
+            {mainNavItems.map((item) => (
+              <Link 
+                key={item.href}
+                href={item.href} 
+                className={`block py-2 transition-colors ${
+                  isActive(item.href) 
+                    ? 'text-[#FFD700]' 
+                    : 'text-[#EAEAEA] hover:text-[#FFD700]'
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {item.title}
+              </Link>
+            ))}
+            
+            {subNavItems.map((item) => (
+              <Link 
+                key={item.href}
+                href={item.href} 
+                className={`block py-2 transition-colors ${
+                  isActive(item.href) 
+                    ? 'text-[#FFD700]' 
+                    : 'text-gray-400 hover:text-[#FFD700]'
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {item.title}
+              </Link>
+            ))}
           </div>
         )}
       </div>

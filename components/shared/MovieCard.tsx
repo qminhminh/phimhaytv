@@ -26,7 +26,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
       <Link href={detailUrl}>
         <div className="relative aspect-[2/3] rounded-lg overflow-hidden">
           <Image
-            src={movie.thumb_url}
+            src={movie.thumb_url.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`}
             alt={movie.name}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

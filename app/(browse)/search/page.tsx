@@ -75,7 +75,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </div>
                 
                 {/* Pagination */}
-                {searchResults.params.pagination.totalPages > 1 && (
+                {searchResults.params?.pagination?.totalPages && searchResults.params.pagination.totalPages > 1 && (
                   <div className="flex justify-center mt-12">
                     <div className="flex gap-2">
                       {page > 1 && (
@@ -93,10 +93,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                         variant="outline" 
                         className="border-[#2A2A2A] bg-[#2A2A2A] text-[#EAEAEA]"
                       >
-                        {page} / {searchResults.params.pagination.totalPages}
+                        {page} / {searchResults.params?.pagination?.totalPages}
                       </Button>
                       
-                      {page < searchResults.params.pagination.totalPages && (
+                      {page < searchResults.params?.pagination?.totalPages && (
                         <a href={`/search?keyword=${keyword}&page=${page + 1}`}>
                           <Button 
                             variant="outline" 

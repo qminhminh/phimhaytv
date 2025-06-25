@@ -84,6 +84,104 @@ export interface MovieDetailResponse {
   item: MovieDetail;
 }
 
+export interface MovieListApiResponse {
+  status: string;
+  msg: string;
+  data: {
+    items: Movie[];
+    params: {
+      pagination: {
+        totalItems: number;
+        totalItemsPerPage: number;
+        currentPage: number;
+        totalPages: number;
+      };
+    };
+    // ... các trường khác nếu cần
+  };
+}
+
+export interface TVSeriesResponse {
+  status: string;
+  msg: string;
+  data: {
+    seoOnPage: {
+      og_type: string;
+      titleHead: string;
+      descriptionHead: string;
+      og_image: string[];
+      og_url: string;
+    };
+    breadCrumb: {
+      name: string;
+      slug: string;
+      isCurrent: boolean;
+      position: number;
+    }[];
+    titlePage: string;
+    items: {
+      tmdb: {
+        type: string | null;
+        id: string | null;
+        season: number | null;
+        vote_average: number | null;
+        vote_count: number | null;
+      };
+      imdb: {
+        id: string | null;
+      };
+      created: {
+        time: string;
+      };
+      modified: {
+        time: string;
+      };
+      _id: string;
+      name: string;
+      slug: string;
+      origin_name: string;
+      type: string;
+      poster_url: string;
+      thumb_url: string;
+      sub_docquyen: boolean;
+      chieurap: boolean;
+      time: string;
+      episode_current: string;
+      quality: string;
+      lang: string;
+      year: number;
+      category: {
+        id: string;
+        name: string;
+        slug: string;
+      }[];
+      country: {
+        id: string;
+        name: string;
+        slug: string;
+      }[];
+    }[];
+    params: {
+      type_slug: string;
+      filterCategory: string[];
+      filterCountry: string[];
+      filterYear: string[];
+      filterType: string[];
+      sortField: string;
+      sortType: string;
+      pagination: {
+        totalItems: number;
+        totalItemsPerPage: number;
+        currentPage: number;
+        totalPages: number;
+      };
+    };
+    type_list: string;
+    APP_DOMAIN_FRONTEND: string;
+    APP_DOMAIN_CDN_IMAGE: string;
+  };
+}
+
 // Phim mới cập nhật
 export const getLatestMovies = async (page: number = 1) => {
   try {
@@ -121,9 +219,9 @@ export const getMoviesList = async (
     year?: number;
     limit?: number;
   }
-) => {
+): Promise<MovieListApiResponse> => {
   try {
-    const response = await axios.get<MovieResponse>(`${BASE_URL}/v1/api/danh-sach/${typeList}`, {
+    const response = await axios.get<MovieListApiResponse>(`${BASE_URL}/v1/api/danh-sach/${typeList}`, {
       params: {
         page: options?.page || 1,
         sort_field: options?.sortField || 'modified.time',
@@ -180,8 +278,14 @@ export const searchMovies = async (
 // Lấy danh sách thể loại phim
 export const getCategories = async () => {
   try {
-    const response = await axios.get<CategoryResponse>(`${BASE_URL}/the-loai`);
-    return response.data;
+    const response = await axios.get(`${BASE_URL}/the-loai`);
+    // Map lại _id thành id
+    const items = response.data.map((item: any) => ({
+      id: item._id,
+      name: item.name,
+      slug: item.slug,
+    }));
+    return { status: true, items };
   } catch (error) {
     console.error('Lỗi khi lấy thể loại phim:', error);
     throw error;
@@ -223,8 +327,13 @@ export const getMoviesByCategory = async (
 // Lấy danh sách quốc gia
 export const getCountries = async () => {
   try {
-    const response = await axios.get<CountryResponse>(`${BASE_URL}/quoc-gia`);
-    return response.data;
+    const response = await axios.get(`${BASE_URL}/quoc-gia`);
+    const items = response.data.map((item: any) => ({
+      id: item._id,
+      name: item.name,
+      slug: item.slug,
+    }));
+    return { status: true, items };
   } catch (error) {
     console.error('Lỗi khi lấy danh sách quốc gia:', error);
     throw error;
@@ -291,6 +400,71 @@ export const getMoviesByYear = async (
     return response.data;
   } catch (error) {
     console.error('Lỗi khi lấy phim theo năm:', error);
+    throw error;
+  }
+};
+
+// Lấy danh sách phim bộ
+export const getTVSeries = async (
+  options?: {
+    page?: number;
+    filterCategory?: string[];
+    filterCountry?: string[];
+    filterYear?: string[];
+    filterType?: string[];
+    sortField?: string;
+    sortType?: string;
+    limit?: number;
+  }
+): Promise<TVSeriesResponse> => {
+  try {
+    const response = await axios.get<TVSeriesResponse>(`${BASE_URL}/v1/api/danh-sach/phim-bo`, {
+      params: {
+        page: options?.page || 1,
+        "filter[category]": options?.filterCategory,
+        "filter[country]": options?.filterCountry,
+        "filter[year]": options?.filterYear,
+        "filter[type]": options?.filterType,
+        sort_field: options?.sortField,
+        sort_type: options?.sortType,
+        limit: options?.limit || 24
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phim bộ:', error);
+    throw error;
+  }
+};
+
+export const getSingleMovies = async (
+  options?: {
+    page?: number;
+    filterCategory?: string[];
+    filterCountry?: string[];
+    filterYear?: string[];
+    filterType?: string[];
+    sortField?: string;
+    sortType?: string;
+    limit?: number;
+  }
+): Promise<TVSeriesResponse> => {
+  try {
+    const response = await axios.get<TVSeriesResponse>(`${BASE_URL}/v1/api/danh-sach/phim-le`, {
+      params: {
+        page: options?.page || 1,
+        "filter[category]": options?.filterCategory,
+        "filter[country]": options?.filterCountry,
+        "filter[year]": options?.filterYear,
+        "filter[type]": options?.filterType,
+        sort_field: options?.sortField,
+        sort_type: options?.sortType,
+        limit: options?.limit || 24
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phim lẻ:', error);
     throw error;
   }
 }; 

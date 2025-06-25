@@ -44,8 +44,8 @@ export function Pagination({
       // Thêm dấu "..." nếu có khoảng cách giữa các trang
       if (index > 0 && pages[index] - pages[index - 1] > 1) {
         items.push(
-          <div key={`ellipsis-${index}`} className="flex items-center justify-center">
-            <MoreHorizontal className="h-4 w-4 text-[#A0A0A0]" />
+          <div key={`ellipsis-${index}`} className="flex items-center justify-center w-10 h-10">
+            <MoreHorizontal className="h-4 w-4 text-gray-400" />
           </div>
         )
       }
@@ -55,10 +55,12 @@ export function Pagination({
         baseUrl ? (
           <Link
             key={page}
-            href={`${baseUrl}${page === 1 ? "" : `?page=${page}`}`}
+            href={`${baseUrl}${page === 1 ? "" : `${baseUrl.includes('?') ? '&' : '?'}page=${page}`}`}
             className={cn(
-              "pagination-item",
-              currentPage === page ? "active" : ""
+              "w-10 h-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+              currentPage === page 
+                ? "bg-yellow-500 text-black hover:bg-yellow-600" 
+                : "bg-neutral-800 text-gray-200 hover:bg-neutral-700"
             )}
           >
             {page}
@@ -68,8 +70,10 @@ export function Pagination({
             key={page}
             onClick={() => onPageChange?.(page)}
             className={cn(
-              "pagination-item",
-              currentPage === page ? "active" : ""
+              "w-10 h-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+              currentPage === page 
+                ? "bg-yellow-500 text-black hover:bg-yellow-600" 
+                : "bg-neutral-800 text-gray-200 hover:bg-neutral-700"
             )}
             disabled={currentPage === page}
           >
@@ -99,9 +103,10 @@ export function Pagination({
         {/* Nút Previous */}
         {baseUrl ? (
           <Link
-            href={prevPage ? `${baseUrl}${prevPage === 1 ? "" : `?page=${prevPage}`}` : "#"}
+            href={prevPage ? `${baseUrl}${prevPage === 1 ? "" : `${baseUrl.includes('?') ? '&' : '?'}page=${prevPage}`}` : "#"}
             className={cn(
-              "pagination-nav",
+              "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
+              "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
               !prevPage && "pointer-events-none opacity-50"
             )}
             aria-disabled={!prevPage}
@@ -112,7 +117,11 @@ export function Pagination({
         ) : (
           <button
             onClick={() => prevPage && onPageChange?.(prevPage)}
-            className="pagination-nav"
+            className={cn(
+              "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
+              "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
+              !prevPage && "opacity-50"
+            )}
             disabled={!prevPage}
             aria-disabled={!prevPage}
           >
@@ -127,9 +136,10 @@ export function Pagination({
         {/* Nút Next */}
         {baseUrl ? (
           <Link
-            href={nextPage ? `${baseUrl}?page=${nextPage}` : "#"}
+            href={nextPage ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${nextPage}` : "#"}
             className={cn(
-              "pagination-nav",
+              "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
+              "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
               !nextPage && "pointer-events-none opacity-50"
             )}
             aria-disabled={!nextPage}
@@ -140,7 +150,11 @@ export function Pagination({
         ) : (
           <button
             onClick={() => nextPage && onPageChange?.(nextPage)}
-            className="pagination-nav"
+            className={cn(
+              "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
+              "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
+              !nextPage && "opacity-50"
+            )}
             disabled={!nextPage}
             aria-disabled={!nextPage}
           >

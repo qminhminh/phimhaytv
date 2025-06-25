@@ -32,7 +32,7 @@ export async function generateStaticParams() {
     const series = await getMoviesList('phim-bo', { limit: 20 });
     
     // Kết hợp cả hai danh sách
-    const allShows = [...(tvShows?.items || []), ...(series?.items || [])];
+    const allShows = [...(tvShows?.data?.items || []), ...(series?.data?.items || [])];
     
     // Trả về mảng các tham số cho trang
     return allShows.map((show) => ({
