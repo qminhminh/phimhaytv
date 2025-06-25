@@ -6,6 +6,18 @@ import { Button } from '@/components/ui/button';
 import MediaPlayer from '@/components/shared/MediaPlayer';
 import { notFound } from 'next/navigation';
 
+interface Episode {
+  name: string;
+  slug: string;
+  link_embed: string;
+  link_m3u8: string;
+}
+
+interface Server {
+  server_name: string;
+  server_data: Episode[];
+}
+
 interface TVShowDetailPageProps {
   params: {
     id: string;
@@ -119,7 +131,7 @@ export default async function TVShowDetailPage({ params }: TVShowDetailPageProps
             
             {/* Categories */}
             <div className="flex flex-wrap gap-2 mb-6">
-              {series.category?.map((cat, index) => (
+              {series.category?.map((cat: string, index: number) => (
                 <span 
                   key={index}
                   className="px-3 py-1 bg-[#2A2A2A] text-[#EAEAEA] rounded-full text-sm"
@@ -168,14 +180,14 @@ export default async function TVShowDetailPage({ params }: TVShowDetailPageProps
             
             {/* Server Selection */}
             <div className="mb-6">
-              {series.episodes.map((server, index) => (
+              {series.episodes.map((server: Server, index: number) => (
                 <div key={index} className="mb-6">
                   <h3 className="text-lg font-semibold text-[#EAEAEA] mb-4">
                     {server.server_name}
                   </h3>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {server.server_data.map((episode, episodeIndex) => (
+                    {server.server_data.map((episode: Episode, episodeIndex: number) => (
                       <Button
                         key={episodeIndex}
                         variant="outline"

@@ -63,10 +63,10 @@ export default async function PhimLePage({ searchParams }: PhimLePageProps) {
   });
   
   const categoriesData = await getCategories();
-  const categories = categoriesData.items || [];
+  const categories = Array.isArray(categoriesData) ? [] : categoriesData.items;
   
   const countriesData = await getCountries();
-  const countries = countriesData.items || [];
+  const countries = Array.isArray(countriesData) ? [] : countriesData.items;
   
   const items = singleMoviesData.data.items;
   const pagination = singleMoviesData.data.params.pagination;
