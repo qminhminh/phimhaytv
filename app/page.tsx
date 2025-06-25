@@ -1,32 +1,22 @@
 import { getLatestMovies, getSingleMovies, getTVSeries, getVietSubMovies, getThuyetMinhMovies, getLongTiengMovies } from '@/lib/api';
 import HeroSection from '@/components/shared/HeroSection';
-import MovieCarousel from '@/components/shared/MovieCarousel';
 import CardViewMovie from '@/components/shared/CardViewMovie';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 
 export default async function Home() {
+  // Lấy dữ liệu phim tuần tự
   const latestMovies = await getLatestMovies();
+  const singleMovies = await getSingleMovies({ limit: 12 });
+  const seriesMovies = await getTVSeries({ limit: 12 });
+  const tvShows = await getTVSeries({ limit: 12, filterType: ['tvshows'] });
+  const vietsubMovies = await getVietSubMovies({ limit: 12 });
+  const thuyetMinhMovies = await getThuyetMinhMovies({ limit: 12 });
+  const longTiengMovies = await getLongTiengMovies({ limit: 12 });
+
+  // Tách phim cho Hero Section và danh sách phim mới
   const featuredMovies = latestMovies.items.slice(0, 5);
   const newMovies = latestMovies.items.slice(5, 17);
-  
-  // Lấy danh sách phim lẻ mới nhất
-  const singleMovies = await getSingleMovies({ limit: 12 });
-  
-  // Lấy danh sách phim bộ mới nhất
-  const seriesMovies = await getTVSeries({ limit: 12 });
-  
-  // Lấy danh sách TV Shows - Giả sử TV Shows dùng chung API với phim bộ
-  const tvShows = await getTVSeries({ limit: 12, filterType: ['tvshows'] });
-
-  // Lấy danh sách phim Việt Sub
-  const vietsubMovies = await getVietSubMovies({ limit: 12 });
-
-  // Lấy danh sách phim Thuyết Minh
-  const thuyetMinhMovies = await getThuyetMinhMovies({ limit: 12 });
-
-  // Lấy danh sách phim Lồng Tiếng
-  const longTiengMovies = await getLongTiengMovies({ limit: 12 });
 
   const imageDomain = singleMovies.data.APP_DOMAIN_CDN_IMAGE;
 

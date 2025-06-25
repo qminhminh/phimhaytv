@@ -7,8 +7,8 @@ import Footer from '../components/ui/Footer';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CineVerse - Premium Movie Streaming',
-  description: 'Watch the latest movies and TV shows in HD quality',
+  title: 'PhimHayTV - Phim HD chất lượng cao',
+  description: 'PhimHayTV là nơi để bạn tìm kiếm và xem phim HD chất lượng cao.',
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body className={inter.className}>
         <div className="min-h-screen bg-[#121212] text-[#EAEAEA]">
           <Navbar />

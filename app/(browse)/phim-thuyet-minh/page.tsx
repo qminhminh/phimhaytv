@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { getThuyetMinhMovies, getCategories, getCountries } from '@/lib/api';
+import { getMoviesList, getCategories, getCountries } from '@/lib/api';
 import CardViewMovie from '@/components/shared/CardViewMovie';
 import FilterBrowse from '@/components/shared/FilterBrowse';
 import { Pagination } from '@/components/ui/pagination';
@@ -17,35 +17,32 @@ interface ThuyetMinhPageProps {
     category?: string;
     country?: string;
     year?: string;
-    sort_field?: string;
-    sort_type?: string;
-    sort_lang?: string;
+    sort_field?: 'modified.time' | '_id' | 'year';
+    sort_type?: 'desc' | 'asc';
+    sort_lang?: 'vietsub' | 'thuyet-minh' | 'long-tieng';
   };
 }
 
 export default async function ThuyetMinhPage({ searchParams }: ThuyetMinhPageProps) {
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const category = searchParams.category;
-  const country = searchParams.country;
-  const year = searchParams.year;
-  const sortField = (searchParams.sort_field as 'modified.time' | '_id' | 'year') || 'modified.time';
-  const sortType = (searchParams.sort_type as 'desc' | 'asc') || 'desc';
-  const sortLang = (searchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
+  const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
+
+  const [thuyetMinhData, categoriesData, countriesData] = await Promise.all([
+    getMoviesList('phim-thuyet-minh', {
+      page,
+      category,
+      country,
+      year,
+      sort_field: sort_field || 'modified.time',
+      sort_type: sort_type || 'desc',
+      sort_lang: sort_lang,
+      limit: 24,
+    }),
+    getCategories(),
+    getCountries()
+  ]);
   
-  const thuyetMinhData = await getThuyetMinhMovies({
-    page,
-    filterCategory: category ? [category] : undefined,
-    filterCountry: country ? [country] : undefined,
-    filterYear: year ? [year] : undefined,
-    sortField,
-    sortType,
-    limit: 24,
-  });
-  
-  const categoriesData = await getCategories();
   const categories = categoriesData.items || [];
-  
-  const countriesData = await getCountries();
   const countries = countriesData.items || [];
   
   const items = thuyetMinhData.data.items;
@@ -57,16 +54,9 @@ export default async function ThuyetMinhPage({ searchParams }: ThuyetMinhPagePro
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   
   const createPaginationBaseUrl = () => {
-    const url = new URL('/phim-thuyet-minh', 'https://phimhaytv.com');
-    
-    if (category) url.searchParams.set('category', category);
-    if (country) url.searchParams.set('country', country);
-    if (year) url.searchParams.set('year', year);
-    if (sortField) url.searchParams.set('sort_field', sortField);
-    if (sortType) url.searchParams.set('sort_type', sortType);
-    if (sortLang) url.searchParams.set('sort_lang', sortLang);
-    
-    return url.pathname + url.search;
+    const params = new URLSearchParams(searchParams as any);
+    params.delete('page');
+    return `/phim-thuyet-minh?${params.toString()}`;
   };
   
   return (
@@ -78,9 +68,9 @@ export default async function ThuyetMinhPage({ searchParams }: ThuyetMinhPagePro
       
       <FilterBrowse
         baseUrl="/phim-thuyet-minh"
-        sortField={sortField}
-        sortType={sortType}
-        sortLang={sortLang}
+        sortField={sort_field || 'modified.time'}
+        sortType={sort_type || 'desc'}
+        sortLang={sort_lang}
         country={country}
         category={category}
         year={year ? parseInt(year) : undefined}

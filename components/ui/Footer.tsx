@@ -9,10 +9,10 @@ export default function Footer() {
           {/* Logo and Description */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="text-2xl font-bold text-[#FFD700] mb-4 block">
-              CineVerse
+              PhimHayTV
             </Link>
             <p className="text-[#A0A0A0] mb-4">
-              Your premier destination for streaming the latest movies and TV shows in HD quality.
+              PhimHayTV là nơi để bạn tìm kiếm và xem phim HD chất lượng cao.
             </p>
             <div className="flex space-x-4">
               <Link href="#" className="text-[#A0A0A0] hover:text-[#FFD700] transition-colors">
@@ -86,7 +86,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-[#2A2A2A] mt-8 pt-8 text-center">
-          <p>&copy; 2025 CineVerse. All rights reserved.</p>
+          <p>&copy; 2025 PhimHayTV. All rights reserved.</p>
         </div>
       </div>
     </footer>

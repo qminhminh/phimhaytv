@@ -3,22 +3,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MovieCard from '@/components/shared/MovieCard';
 import { searchMovies } from '@/lib/api';
+import Link from 'next/link';
 
 interface SearchPageProps {
   searchParams: {
-    keyword?: string;
+    q?: string;
     page?: string;
   };
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const keyword = searchParams.keyword || '';
+  const keyword = searchParams.q || '';
   const page = parseInt(searchParams.page || '1');
   
   // Chỉ tìm kiếm khi có từ khóa
   const searchResults = keyword 
     ? await searchMovies(keyword, { page }) 
-    : { items: [], params: { pagination: { totalPages: 0, currentPage: 1 } } };
+    : null;
+
+  const totalPages = searchResults?.params.pagination.totalPages || 0;
 
   return (
     <div className="min-h-screen bg-[#121212] pt-24">
@@ -33,7 +36,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A0A0A0]" />
               <Input 
-                name="keyword"
+                name="q"
                 defaultValue={keyword}
                 placeholder="Nhập tên phim cần tìm..." 
                 className="pl-10 bg-[#1A1A1A] border-[#2A2A2A] text-[#EAEAEA] h-12"
@@ -49,13 +52,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </form>
         
         {/* Search Results */}
-        {keyword && (
+        {keyword ? (
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-[#EAEAEA] mb-4">
               Kết quả tìm kiếm cho: <span className="text-[#FFD700]">&quot;{keyword}&quot;</span>
             </h2>
             
-            {searchResults.items.length === 0 ? (
+            {searchResults && searchResults.items.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-[#A0A0A0] text-lg">
                   Không tìm thấy kết quả nào cho từ khóa &quot;{keyword}&quot;.
@@ -67,7 +70,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                  {searchResults.items.map((movie) => (
+                  {searchResults?.items.map((movie) => (
                     <div key={movie._id}>
                       <MovieCard movie={movie} />
                     </div>
@@ -75,36 +78,36 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </div>
                 
                 {/* Pagination */}
-                {searchResults.params?.pagination?.totalPages && searchResults.params.pagination.totalPages > 1 && (
+                {totalPages > 1 && (
                   <div className="flex justify-center mt-12">
                     <div className="flex gap-2">
                       {page > 1 && (
-                        <a href={`/search?keyword=${keyword}&page=${page - 1}`}>
+                        <Link href={`/search?q=${keyword}&page=${page - 1}`}>
                           <Button 
                             variant="outline" 
                             className="border-[#2A2A2A] text-[#EAEAEA]"
                           >
                             Trang trước
                           </Button>
-                        </a>
+                        </Link>
                       )}
                       
                       <Button 
                         variant="outline" 
                         className="border-[#2A2A2A] bg-[#2A2A2A] text-[#EAEAEA]"
                       >
-                        {page} / {searchResults.params?.pagination?.totalPages}
+                        {page} / {totalPages}
                       </Button>
                       
-                      {page < searchResults.params?.pagination?.totalPages && (
-                        <a href={`/search?keyword=${keyword}&page=${page + 1}`}>
+                      {page < totalPages && (
+                        <Link href={`/search?q=${keyword}&page=${page + 1}`}>
                           <Button 
                             variant="outline" 
                             className="border-[#2A2A2A] text-[#EAEAEA]"
                           >
                             Trang sau
                           </Button>
-                        </a>
+                        </Link>
                       )}
                     </div>
                   </div>
@@ -112,6 +115,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               </>
             )}
           </div>
+        ) : (
+            <div className="text-center py-12">
+                <p className="text-[#A0A0A0] text-lg">
+                    Vui lòng nhập từ khóa vào ô tìm kiếm ở trên để bắt đầu.
+                </p>
+            </div>
         )}
       </div>
     </div>

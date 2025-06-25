@@ -2,10 +2,24 @@
 
 import { Play, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-// Sử dụng một kiểu chung hơn để chấp nhận nhiều loại movie object
+// Định nghĩa interface cho Category và Country
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Country {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+// Cập nhật GenericMovie để bao gồm category và country
 interface GenericMovie {
   _id: string;
   poster_url?: string;
@@ -16,7 +30,10 @@ interface GenericMovie {
   time?: string;
   content?: string;
   slug?: string;
-  [key: string]: any; // Chấp nhận các trường khác
+  type?: string;
+  category?: (Category | string)[];
+  country?: (Country | string)[];
+  [key: string]: any;
 }
 
 interface HeroSectionProps {
@@ -25,7 +42,32 @@ interface HeroSectionProps {
 
 export default function HeroSection({ movies }: HeroSectionProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (movies.length > 1) {
+      const timer = setInterval(() => {
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % movies.length);
+      }, 5000);
+
+      return () => clearInterval(timer);
+    }
+  }, [movies.length]);
+
   const movie = movies[currentIndex];
+
+  const getLink = (movieItem: GenericMovie) => {
+    if (!movieItem?.type || !movieItem?.slug) return '/';
+    switch (movieItem.type) {
+      case 'single':
+        return `/phim-le/${movieItem.slug}`;
+      case 'series':
+      case 'hoathinh':
+      case 'tvshows':
+        return `/tv-shows/${movieItem.slug}`;
+      default:
+        return `/phim-bo/${movieItem.slug}`;
+    }
+  };
 
   if (!movie) return null;
 
@@ -48,11 +90,25 @@ export default function HeroSection({ movies }: HeroSectionProps) {
               {movie.name}
             </h1>
             
-            {/* Meta Information */}
-            <div className="flex items-center space-x-4 mb-4 text-[#A0A0A0]">
+            {/* Cập nhật Meta Information */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-sm text-gray-300">
               {movie.year && <span>{movie.year}</span>}
-              {movie.quality && <span className="px-2 py-1 bg-[#FFD700] text-[#121212] text-xs font-bold rounded">{movie.quality}</span>}
+              {movie.quality && <Badge className="bg-yellow-500 text-black font-medium">{movie.quality}</Badge>}
               {movie.time && <span>{movie.time}</span>}
+              {movie.country && movie.country.length > 0 && (
+                <span className="font-semibold">
+                  {typeof movie.country[0] === 'string' ? movie.country[0] : movie.country[0].name}
+                </span>
+              )}
+            </div>
+
+            {/* Thêm Category Badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              {movie.category?.slice(0, 3).map((cat) => (
+                <Badge key={typeof cat === 'string' ? cat : cat.id} variant="outline" className="text-gray-300 border-gray-600 backdrop-blur-sm bg-black/20">
+                  {typeof cat === 'string' ? cat : cat.name}
+                </Badge>
+              ))}
             </div>
             
             <p className="text-lg md:text-xl text-[#EAEAEA] mb-8 leading-relaxed text-shadow line-clamp-3">
@@ -61,7 +117,7 @@ export default function HeroSection({ movies }: HeroSectionProps) {
             
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href={`/movies/${movie.slug}`}>
+              <Link href={getLink(movie)}>
                 <Button 
                   className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-[#121212] font-semibold px-8 py-3 text-lg h-11 rounded-md"
                 >
@@ -70,7 +126,7 @@ export default function HeroSection({ movies }: HeroSectionProps) {
                 </Button>
               </Link>
               
-              <Link href={`/movies/${movie.slug}`}>
+              <Link href={getLink(movie)}>
                 <Button 
                   className="border border-[#EAEAEA] text-[#EAEAEA] hover:bg-[#EAEAEA] hover:text-[#121212] px-8 py-3 text-lg h-11 rounded-md"
                 >

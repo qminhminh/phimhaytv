@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { getMoviesList, getCountries, getCategories } from '@/lib/api';
-import TVSeriesList from '@/components/shared/CardViewMovie';
+import CardViewMovie from '@/components/shared/CardViewMovie';
 import { Pagination } from '@/components/ui/pagination';
 import { Metadata } from 'next';
 import FilterBrowse from '@/components/shared/FilterBrowse';
@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 interface TVShowsPageProps {
   searchParams: {
     page?: string;
-    sort_field?: string;
-    sort_type?: string;
-    sort_lang?: string;
+    sort_field?: 'modified.time' | '_id' | 'year';
+    sort_type?: 'desc' | 'asc';
+    sort_lang?: 'vietsub' | 'thuyet-minh' | 'long-tieng';
     country?: string;
     year?: string;
     category?: string;
@@ -25,63 +25,36 @@ interface TVShowsPageProps {
 
 export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const sortField = (searchParams.sort_field as 'modified.time' | '_id' | 'year') || 'modified.time';
-  const sortType = (searchParams.sort_type as 'desc' | 'asc') || 'desc';
-  const sortLang = (searchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
-  const country = searchParams.country;
-  const category = searchParams.category;
-  const year = searchParams.year ? parseInt(searchParams.year) : undefined;
+  const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
+
+  const [tvShowsData, categoriesData, countriesData] = await Promise.all([
+    getMoviesList('tv-shows', {
+      page,
+      category,
+      country,
+      year,
+      sort_field: sort_field || 'modified.time',
+      sort_type: sort_type || 'desc',
+      sort_lang,
+      limit: 24
+    }),
+    getCategories(),
+    getCountries()
+  ]);
   
-  // Lấy danh sách quốc gia
-  const countriesData = await getCountries();
   const countries = countriesData.items || [];
-  
-  // Lấy danh sách thể loại phim
-  const categoriesData = await getCategories();
   const categories = categoriesData.items || [];
   
-  // Lấy danh sách phim bộ/TV Shows đúng theo API yêu cầu
-  const tvShowsData = await getMoviesList('tv-shows', {
-    page,
-    sortField,
-    sortType,
-    sortLang,
-    country,
-    category: category ? category : undefined,
-    year,
-    limit: 24
-  });
+  const movies = tvShowsData.data.items || [];
+  const totalPages = tvShowsData.data.params.pagination.totalPages || 1;
+  const imageDomain = tvShowsData.data.APP_DOMAIN_CDN_IMAGE;
   
-  // Đảm bảo lấy đúng danh sách phim và phân trang từ API
-  const movies = tvShowsData?.data?.items || [];
-  const totalPages = tvShowsData?.data?.params?.pagination?.totalPages || 1;
-  const imageDomain = 'https://phimimg.com';
-  
-  // Tạo URL với các tham số lọc cho phân trang
-  const createPaginationUrl = (params: Record<string, string | undefined>) => {
-    const url = new URL('/tv-shows', 'https://phimhaytv.com');
-    
-    // Thêm các tham số hiện tại
-    if (searchParams.sort_field) url.searchParams.set('sort_field', searchParams.sort_field);
-    if (searchParams.sort_type) url.searchParams.set('sort_type', searchParams.sort_type);
-    if (searchParams.sort_lang) url.searchParams.set('sort_lang', searchParams.sort_lang);
-    if (searchParams.country) url.searchParams.set('country', searchParams.country);
-    if (searchParams.category) url.searchParams.set('category', searchParams.category);
-    if (searchParams.year) url.searchParams.set('year', searchParams.year);
-    
-    // Ghi đè các tham số mới
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined) {
-        url.searchParams.delete(key);
-      } else {
-        url.searchParams.set(key, value);
-      }
-    });
-    
-    return url.pathname + url.search;
+  const createPaginationUrl = () => {
+    const params = new URLSearchParams(searchParams as any);
+    params.delete('page');
+    return `/tv-shows?${params.toString()}`;
   };
   
-  // Danh sách các năm để lọc
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   
@@ -90,32 +63,29 @@ export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
       <div className="container mx-auto px-4">
         <h1 className="text-3xl font-bold text-[#EAEAEA] mb-6">Phim Bộ / TV Shows</h1>
         
-        {/* Bộ lọc */}
         <FilterBrowse
           baseUrl="/tv-shows"
-          sortField={sortField}
-          sortType={sortType}
-          sortLang={sortLang}
+          sortField={sort_field || 'modified.time'}
+          sortType={sort_type || 'desc'}
+          sortLang={sort_lang}
           country={country}
           category={category}
-          year={year}
+          year={year ? parseInt(year) : undefined}
           countries={countries}
           categories={categories}
           years={years}
         />
         
-        {/* Danh sách phim */}
         <Suspense fallback={<TVSeriesListSkeleton />}>
-          <TVSeriesList items={movies as any} imageDomain={imageDomain} />
+          <CardViewMovie items={movies as any} imageDomain={imageDomain} />
         </Suspense>
         
-        {/* Phân trang */}
         {totalPages > 1 && (
-          <div className="mt-8">
+          <div className="mt-8 flex justify-center">
             <Pagination 
               currentPage={page} 
               totalPages={totalPages} 
-              baseUrl={createPaginationUrl({ page: undefined })} 
+              baseUrl={createPaginationUrl()} 
             />
           </div>
         )}

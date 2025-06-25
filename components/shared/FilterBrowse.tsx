@@ -1,199 +1,164 @@
 'use client';
 
-import { ChevronDown, Filter } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, Filter, X } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface FilterBrowseProps {
-  baseUrl: string; // Thêm prop này để component có thể tái sử dụng
-  sortField: string;
-  sortType: string;
+  baseUrl: string;
+  sortField?: string;
+  sortType?: string;
   sortLang?: string;
   country?: string;
   category?: string;
-  year?: number;
+  year?: number | string;
   countries: { id: string; name: string; slug: string }[];
   categories: { id: string; name: string; slug: string }[];
   years: number[];
+  showLanguage?: boolean;
 }
 
 export default function FilterBrowse({
   baseUrl,
-  sortField,
-  sortType,
-  sortLang,
-  country,
-  category,
-  year,
+  sortField: initialSortField = 'modified.time',
+  sortType: initialSortType = 'desc',
+  sortLang: initialSortLang,
+  country: initialCountry,
+  category: initialCategory,
+  year: initialYear,
   countries,
   categories,
-  years
+  years,
+  showLanguage = true,
 }: FilterBrowseProps) {
   const router = useRouter();
+  
+  const [sortValue, setSortValue] = useState(`${initialSortField}-${initialSortType}`);
+  const [lang, setLang] = useState(initialSortLang);
+  const [cat, setCat] = useState(initialCategory);
+  const [loc, setLoc] = useState(initialCountry);
+  const [selectedYear, setSelectedYear] = useState(initialYear?.toString());
 
-  // Tạo URL với các tham số lọc
-  const createUrl = (params: Record<string, string | undefined>) => {
-    const url = new URL(baseUrl, window.location.origin);
+  const handleFilter = () => {
+    const [sort_field, sort_type] = sortValue.split('-');
     
-    // Thêm các tham số hiện tại
-    if (sortField) url.searchParams.set('sort_field', sortField);
-    if (sortType) url.searchParams.set('sort_type', sortType);
-    if (sortLang) url.searchParams.set('sort_lang', sortLang);
-    if (country) url.searchParams.set('country', country);
-    if (category) url.searchParams.set('category', category);
-    if (year) url.searchParams.set('year', year.toString());
+    const params = new URLSearchParams();
     
-    // Ghi đè các tham số mới
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined) {
-        url.searchParams.delete(key);
-      } else {
-        url.searchParams.set(key, value);
-      }
-    });
+    params.set('sort_field', sort_field);
+    params.set('sort_type', sort_type);
+
+    // Xử lý các trường lọc khác
+    // Nếu giá trị là 'all', đặt thành rỗng. Nếu không được chọn (undefined), không thêm vào.
+    if (lang !== undefined && lang !== null) {
+      params.set('sort_lang', lang === 'all' ? '' : lang);
+    }
+    if (cat !== undefined && cat !== null) {
+      params.set('category', cat === 'all' ? '' : cat);
+    }
+    if (loc !== undefined && loc !== null) {
+      params.set('country', loc === 'all' ? '' : loc);
+    }
+    if (selectedYear !== undefined && selectedYear !== null) {
+      params.set('year', selectedYear === 'all' ? '' : selectedYear);
+    }
     
-    return url.pathname + url.search;
+    router.push(`${baseUrl}?${params.toString()}`);
   };
 
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    const [field, type] = value.split('-');
-    router.push(createUrl({ 
-      sort_field: field, 
-      sort_type: type,
-      page: '1'
-    }));
+  const handleClear = () => {
+    router.push(baseUrl);
   };
 
-  const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    router.push(createUrl({ 
-      sort_lang: value || undefined,
-      page: '1'
-    }));
-  };
-
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    router.push(createUrl({ 
-      category: value || undefined,
-      page: '1'
-    }));
-  };
-
-  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    router.push(createUrl({ 
-      country: value || undefined,
-      page: '1'
-    }));
-  };
+  const currentFiltersCount = [lang, cat, loc, selectedYear].filter(Boolean).length;
 
   return (
-    <div className="bg-[#1E1E1E] rounded-lg p-4 mb-6">
+    <div className="bg-[#1e1e1e] bg-opacity-80 backdrop-blur-sm border border-neutral-700/50 rounded-lg p-4 mb-8">
       <div className="flex items-center gap-2 mb-4">
-        <Filter className="h-5 w-5 text-[#FFD700]" />
-        <h2 className="text-xl font-semibold text-[#EAEAEA]">Bộ lọc</h2>
+        <Filter className="h-5 w-5 text-yellow-400" />
+        <h2 className="text-xl font-semibold text-white">Bộ lọc phim</h2>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Sắp xếp theo */}
-        <div className="space-y-2">
-          <label className="text-sm text-gray-400">Sắp xếp theo</label>
-          <div className="relative">
-            <select 
-              onChange={handleSortChange}
-              value={`${sortField}-${sortType}`}
-              className="w-full bg-[#2A2A2A] text-gray-300 rounded-md py-2 px-3 appearance-none"
-            >
-              <option value="modified.time-desc">Mới cập nhật</option>
-              <option value="year-desc">Năm mới nhất</option>
-              <option value="year-asc">Năm cũ nhất</option>
-              <option value="_id-desc">Mới đăng</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <Select value={sortValue} onValueChange={setSortValue}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Sắp xếp theo..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="modified.time-desc">Mới cập nhật</SelectItem>
+            <SelectItem value="year-desc">Năm mới nhất</SelectItem>
+            <SelectItem value="year-asc">Năm cũ nhất</SelectItem>
+            <SelectItem value="_id-desc">Mới đăng</SelectItem>
+          </SelectContent>
+        </Select>
         
-        {/* Ngôn ngữ */}
-        <div className="space-y-2">
-          <label className="text-sm text-gray-400">Ngôn ngữ</label>
-          <div className="relative">
-            <select 
-              onChange={handleLangChange}
-              value={sortLang || ''}
-              className="w-full bg-[#2A2A2A] text-gray-300 rounded-md py-2 px-3 appearance-none"
-            >
-              <option value="">Tất cả</option>
-              <option value="vietsub">Vietsub</option>
-              <option value="thuyet-minh">Thuyết minh</option>
-              <option value="long-tieng">Lồng tiếng</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          </div>
-        </div>
+        {showLanguage && (
+          <Select value={lang} onValueChange={setLang}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Ngôn ngữ..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả ngôn ngữ</SelectItem>
+              <SelectItem value="vietsub">Vietsub</SelectItem>
+              <SelectItem value="thuyet-minh">Thuyết minh</SelectItem>
+              <SelectItem value="long-tieng">Lồng tiếng</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         
-        {/* Thể loại */}
-        <div className="space-y-2">
-          <label className="text-sm text-gray-400">Thể loại</label>
-          <div className="relative">
-            <select 
-              onChange={handleCategoryChange}
-              value={category || ''}
-              className="w-full bg-[#2A2A2A] text-gray-300 rounded-md py-2 px-3 appearance-none"
-            >
-              <option value="">Tất cả</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-        
-        {/* Quốc gia */}
-        <div className="space-y-2">
-          <label className="text-sm text-gray-400">Quốc gia</label>
-          <div className="relative">
-            <select 
-              onChange={handleCountryChange}
-              value={country || ''}
-              className="w-full bg-[#2A2A2A] text-gray-300 rounded-md py-2 px-3 appearance-none"
-            >
-              <option value="">Tất cả</option>
-              {countries.map((c) => (
-                <option key={c.id} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-        
-        {/* Năm */}
-        <div className="space-y-2 lg:col-span-4">
-          <label className="text-sm text-gray-400">Năm</label>
-          <div className="flex flex-wrap gap-2">
-            <Link 
-              href={createUrl({ year: undefined, page: '1' })}
-              className={`px-3 py-1 text-sm rounded-full ${!year ? 'bg-[#FFD700] text-[#121212]' : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A3A]'}`}
-            >
-              Tất cả
-            </Link>
-            {years.map((y) => (
-              <Link 
-                key={y}
-                href={createUrl({ year: y.toString(), page: '1' })}
-                className={`px-3 py-1 text-sm rounded-full ${year === y ? 'bg-[#FFD700] text-[#121212]' : 'bg-[#2A2A2A] text-gray-300 hover:bg-[#3A3A3A]'}`}
-              >
-                {y}
-              </Link>
+        <Select value={cat} onValueChange={setCat}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Thể loại..." />
+          </SelectTrigger>
+          <SelectContent>
+             <SelectItem value="all">Tất cả thể loại</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.slug}>{c.name}</SelectItem>
             ))}
-          </div>
-        </div>
+          </SelectContent>
+        </Select>
+        
+        <Select value={loc} onValueChange={setLoc}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Quốc gia..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả quốc gia</SelectItem>
+            {countries.map((c) => (
+              <SelectItem key={c.id} value={c.slug}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Năm..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả các năm</SelectItem>
+            {years.map((y) => (
+              <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="mt-5 flex flex-col sm:flex-row items-center gap-4">
+        <Button onClick={handleFilter} className="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
+          <Filter className="h-4 w-4 mr-2" />
+          Lọc phim
+        </Button>
+        <Button onClick={handleClear} variant="ghost" className="w-full sm:w-auto hover:bg-neutral-700/50" disabled={currentFiltersCount === 0}>
+          <X className="h-4 w-4 mr-2" />
+          Xóa bộ lọc ({currentFiltersCount})
+        </Button>
       </div>
     </div>
   );

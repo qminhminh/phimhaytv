@@ -17,14 +17,15 @@ interface Country {
 }
 
 interface TMDB {
-  type: string | null;
-  id: string | null;
-  season: number | null;
-  vote_average: number | null;
-  vote_count: number | null;
+  type?: string | null;
+  id?: string | null;
+  season?: number | null;
+  vote_average?: number | null;
+  vote_count?: number | null;
 }
 
-interface TVSeriesItem {
+// Tạo một kiểu chung cho các item phim
+interface GenericMovieItem {
   _id: string;
   name: string;
   slug: string;
@@ -34,35 +35,26 @@ interface TVSeriesItem {
   year: number;
   category: (Category | string)[];
   country: (Country | string)[];
-  episode_current: string;
+  episode_current?: string; // Tùy chọn
   quality: string;
   lang: string;
-  tmdb: TMDB;
+  tmdb?: TMDB; // Tùy chọn
   time: string;
   type?: string;
 }
 
 interface CardViewMovieProps {
-  items: TVSeriesItem[];
+  items: GenericMovieItem[];
   imageDomain: string;
 }
 
 const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => {
   
-  const getLink = (item: TVSeriesItem) => {
-    switch (item.type) {
-      case 'single':
-        return `/phim-le/${item.slug}`;
-      case 'series':
-      case 'hoathinh':
-      case 'tvshows':
-        return `/tv-shows/${item.slug}`;
-      default:
-        return `/phim-bo/${item.slug}`;
-    }
+  const getLink = (item: GenericMovieItem) => {
+    return `/movies/${item.slug}`;
   };
 
-  const getImageUrl = (item: TVSeriesItem) => {
+  const getImageUrl = (item: GenericMovieItem) => {
     const fallbackDomain = 'https://phimimg.com';
     const imageUrl = item.poster_url || item.thumb_url;
     if (!imageUrl) return ''; // Trả về chuỗi rỗng nếu không có URL
@@ -121,19 +113,21 @@ const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => 
               {item.tmdb && item.tmdb.vote_average ? (
                 <div className="flex items-center text-xs">
                   <Star className="h-3 w-3 text-yellow-500 mr-0.5" fill="currentColor" />
-                  <span className="text-yellow-500 font-medium">{item.tmdb.vote_average}</span>
+                  <span className="text-yellow-500 font-medium">{item.tmdb.vote_average.toFixed(1)}</span>
                 </div>
               ) : null}
             </div>
             
-            <div className="mt-2">
-              <p className="text-xs text-gray-300 font-medium">
-                {item.episode_current}
-              </p>
-            </div>
+            {item.episode_current && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-300 font-medium">
+                  {item.episode_current}
+                </p>
+              </div>
+            )}
             
             <div className="flex flex-wrap gap-1 mt-2">
-              {item.category.slice(0, 2).map((cat) => {
+              {item.category?.slice(0, 2).map((cat) => {
                 if (typeof cat === 'string') {
                   return (
                     <Badge key={cat} variant="outline" className="text-[10px] py-0 border-gray-700 text-gray-300 hover:bg-yellow-500/10 hover:text-yellow-500 hover:border-yellow-500/50 transition-colors">

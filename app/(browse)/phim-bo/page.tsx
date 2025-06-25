@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { getTVSeries, getCategories, getCountries } from '@/lib/api';
+import { getMoviesList, getCategories, getCountries } from '@/lib/api';
 import CardViewMovie from '@/components/shared/CardViewMovie';
 import FilterBrowse from '@/components/shared/FilterBrowse';
 import { Pagination } from '@/components/ui/pagination';
@@ -17,63 +17,44 @@ interface PhimBoPageProps {
     category?: string;
     country?: string;
     year?: string;
-    sort_field?: string;
-    sort_type?: string;
-    sort_lang?: string;
+    sort_field?: 'modified.time' | '_id' | 'year';
+    sort_type?: 'desc' | 'asc';
   };
 }
 
 export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const category = searchParams.category;
-  const country = searchParams.country;
-  const year = searchParams.year;
-  const sortField = (searchParams.sort_field as 'modified.time' | '_id' | 'year') || 'modified.time';
-  const sortType = (searchParams.sort_type as 'desc' | 'asc') || 'desc';
-  const sortLang = (searchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
+  const { category, country, year, sort_field, sort_type } = searchParams;
   
-  // Lấy danh sách phim bộ từ API
-  const tvSeriesData = await getTVSeries({
-    page,
-    filterCategory: category ? [category] : [""],
-    filterCountry: country ? [country] : [""],
-    filterYear: year ? [year] : [""],
-    sortField,
-    sortType,
-    limit: 24
-    // Note: The API for phim-bo does not seem to support sort_lang, so it's not passed here.
-  });
+  const [tvSeriesData, categoriesData, countriesData] = await Promise.all([
+    getMoviesList('phim-bo', {
+      page,
+      category,
+      country,
+      year,
+      sort_field: sort_field || 'modified.time',
+      sort_type: sort_type || 'desc',
+      limit: 24
+    }),
+    getCategories(),
+    getCountries()
+  ]);
   
-  // Lấy danh sách thể loại
-  const categoriesData = await getCategories();
   const categories = categoriesData.items || [];
-  
-  // Lấy danh sách quốc gia
-  const countriesData = await getCountries();
   const countries = countriesData.items || [];
   
-  // Lấy thông tin từ API
   const items = tvSeriesData.data.items;
   const pagination = tvSeriesData.data.params.pagination;
   const totalPages = pagination.totalPages;
   const imageDomain = tvSeriesData.data.APP_DOMAIN_CDN_IMAGE;
   
-  // Danh sách năm để lọc
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   
-  // Tạo URL cho phân trang
   const createPaginationBaseUrl = () => {
-    const url = new URL('/phim-bo', 'https://phimhaytv.com');
-    
-    if (category) url.searchParams.set('category', category);
-    if (country) url.searchParams.set('country', country);
-    if (year) url.searchParams.set('year', year);
-    if (sortField) url.searchParams.set('sort_field', sortField);
-    if (sortType) url.searchParams.set('sort_type', sortType);
-    if (sortLang) url.searchParams.set('sort_lang', sortLang);
-    
-    return url.pathname + url.search;
+    const params = new URLSearchParams(searchParams as any);
+    params.delete('page');
+    return `/phim-bo?${params.toString()}`;
   };
   
   return (
@@ -83,12 +64,10 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
         <p className="text-gray-400 mt-2">{tvSeriesData.data.seoOnPage.descriptionHead}</p>
       </div>
       
-      {/* Bộ lọc */}
       <FilterBrowse
         baseUrl="/phim-bo"
-        sortField={sortField}
-        sortType={sortType}
-        sortLang={sortLang}
+        sortField={sort_field || 'modified.time'}
+        sortType={sort_type || 'desc'}
         country={country}
         category={category}
         year={year ? parseInt(year) : undefined}
@@ -97,12 +76,10 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
         years={years}
       />
       
-      {/* Danh sách phim */}
       <Suspense fallback={<TVSeriesListSkeleton />}>
         <CardViewMovie items={items} imageDomain={imageDomain} />
       </Suspense>
       
-      {/* Phân trang */}
       {totalPages > 1 && (
         <div className="mt-8 flex justify-center">
           <Pagination
