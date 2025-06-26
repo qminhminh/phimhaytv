@@ -2,6 +2,8 @@ import { getMovieBySlug, getLatestMovies, Episode, EpisodeServerData } from '@/l
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
+import MediaPlayer from '@/components/shared/MediaPlayer';
+import { RefreshButton } from '@/components/shared/RefreshButton';
 
 type WatchPageProps = {
     params: {
@@ -65,6 +67,50 @@ const formatServerName = (name: string) => {
     return name.replace(/^#/, '').trim();
 }
 
+async function getValidatedEmbedUrl(url: string, timeout = 4000): Promise<string> {
+    if (!url || !url.startsWith('http')) {
+        return '';
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET', // Use GET for better compatibility
+            redirect: 'follow',
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+            },
+        });
+        
+        clearTimeout(timeoutId);
+
+        const finalUrl = response.url;
+        const xFrameOptions = response.headers.get('x-frame-options');
+
+        if (finalUrl.includes('google.com')) {
+            console.warn(`Redirect to Google detected for: ${url}`);
+            return '';
+        }
+
+        if (xFrameOptions && (xFrameOptions.toLowerCase() === 'deny' || xFrameOptions.toLowerCase() === 'sameorigin')) {
+            console.warn(`URL ${finalUrl} cannot be embedded due to X-Frame-Options: ${xFrameOptions}`);
+            return '';
+        }
+
+        return finalUrl;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.error(`Embed URL check for ${url} timed out.`);
+        } else {
+            console.error(`Failed to validate embed URL for ${url}:`, error);
+        }
+        return '';
+    }
+}
+
 export default async function WatchPage({ params, searchParams }: WatchPageProps) {
     const { movie_slug, episode_slug } = params;
     const { server: serverQuery } = searchParams;
@@ -83,29 +129,28 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
     }
 
     const { episode: currentEpisode, serverName } = currentEpisodeData;
-    const isGoogleUrl = currentEpisode.link_embed.includes('google.com');
+    const validatedEmbedUrl = await getValidatedEmbedUrl(currentEpisode.link_embed);
+    const isEmbedUrlInvalid = !validatedEmbedUrl;
 
     return (
         <div className="bg-background text-white min-h-screen">
             <div className="container mx-auto px-2 sm:px-4 py-6">
                 {/* Video Player */}
-                <div className="aspect-video w-full mb-6 shadow-2xl shadow-primary/20 rounded-lg overflow-hidden bg-black flex items-center justify-center">
-                    {isGoogleUrl ? (
-                        <div className="text-center">
-                            <h3 className="text-2xl font-bold text-primary">Tập phim chưa có</h3>
-                            <p className="text-gray-400 mt-2">Nội dung cho tập này hiện không khả dụng. Vui lòng thử lại sau.</p>
+                <div className="w-full mb-6">
+                    {isEmbedUrlInvalid ? (
+                        <div className="text-center p-4 aspect-video bg-black flex flex-col items-center justify-center rounded-lg">
+                            <div>
+                                <h3 className="text-2xl font-bold text-primary">Tập phim chưa có hoặc link đã hỏng</h3>
+                                <p className="text-gray-400 mt-2">Nội dung cho tập này hiện không khả dụng. Vui lòng thử lại sau.</p>
+                            </div>
                         </div>
                     ) : (
-                        <iframe
-                            key={currentEpisode.link_embed}
-                            src={currentEpisode.link_embed}
+                        <MediaPlayer
+                            key={validatedEmbedUrl}
+                            embedUrl={validatedEmbedUrl}
                             title={`${movie.name} - ${currentEpisode.name}`}
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                            className="w-full h-full"
-                            sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
-                        ></iframe>
+                            poster={movie.poster_url || movie.thumb_url}
+                        />
                     )}
                 </div>
 
@@ -114,9 +159,15 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
                     <h1 className="text-2xl sm:text-3xl font-bold text-primary">{`${movie.name} - ${currentEpisode.name}`}</h1>
                     <h2 className="text-lg sm:text-xl text-gray-300 mt-1">{movie.origin_name}</h2>
                     <p className="text-gray-400 text-sm mt-2">{`(Server: ${formatServerName(serverName)})`}</p>
+                    
                     <Link href={`/movies/${movie.slug}`} className="text-sm text-primary hover:underline mt-4 inline-block">
                         &larr; Quay lại trang thông tin phim
                     </Link>
+
+                    <div className="mt-4 flex items-center gap-2">
+                        <p className="text-sm text-gray-400">Không tải được phim? Hãy thử:</p>
+                        <RefreshButton />
+                    </div>
                 </div>
 
                 {/* Episodes List */}

@@ -96,16 +96,19 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto bg-[#121212] rounded-lg overflow-hidden">
+    <div className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20">
       {/* Video Element */}
       <div className="relative aspect-video">
         {useIframe ? (
           <iframe
             ref={iframeRef}
             src={embedUrl}
+            title={title}
             className="w-full h-full"
             allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
           />
         ) : videoUrl || m3u8Url ? (
           <video
