@@ -21,7 +21,7 @@ export default async function Home() {
   const latestMovies = await getLatestMovies({ limit: 17 });
   const singleMovies = await getSingleMovies({ limit: 12 });
   const seriesMovies = await getTVSeries({ limit: 12 });
-  const tvShows = await getTVSeries({ limit: 12, filterCategory: ['tv-shows'] });
+  const tvShows = await getTVSeries({ limit: 12});
   const vietsubMovies = await getVietSubMovies({ limit: 12 });
   const thuyetMinhMovies = await getThuyetMinhMovies({ limit: 12 });
   const longTiengMovies = await getLongTiengMovies({ limit: 12 });

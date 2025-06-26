@@ -1,13 +1,14 @@
 import 'server-only';
 
 const BASE_URL = 'https://phimapi.com';
+const DEFAULT_REVALIDATE_TIME = 3600; // 1 giờ
 
 async function fetcher<T>(
   path: string,
   params: Record<string, any> = {},
   options: { revalidate?: number } = {}
 ): Promise<T> {
-  const { revalidate = 3600 } = options; // Cache for 1 hour by default
+  const { revalidate = DEFAULT_REVALIDATE_TIME } = options; // Cache for 1 hour by default
 
   const url = new URL(`${BASE_URL}${path}`);
   Object.entries(params).forEach(([key, value]) => {
@@ -644,14 +645,16 @@ export interface MovieDetailData {
 
 export const getMovieBySlug = async (slug: string): Promise<MovieDetailData | null> => {
     try {
-        const res = await fetch(`${BASE_URL}/phim/${slug}`, { next: { revalidate: 3600 } });
+        const url = `${BASE_URL}/phim/${slug}`;
+        const res = await fetch(url, {
+            next: { revalidate: DEFAULT_REVALIDATE_TIME },
+        });
         if (!res.ok) {
-            // e.g. 404
+            console.error(`Error fetching movie ${slug}: ${res.status} ${res.statusText}`);
             return null;
         }
         return res.json();
     } catch (error) {
-        // e.g. network error
         console.error(`Error fetching movie by slug "${slug}":`, error);
         return null;
     }

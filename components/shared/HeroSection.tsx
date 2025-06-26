@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 // Định nghĩa interface cho Category và Country
 interface Category {
@@ -74,9 +75,12 @@ export default function HeroSection({ movies }: HeroSectionProps) {
   return (
     <div className="relative h-[70vh] md:h-[80vh] overflow-hidden">
       {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${movie.poster_url || movie.thumb_url})` }}
+      <Image
+        alt={movie.name!}
+        src={movie.poster_url || movie.thumb_url!}
+        fill
+        className="object-cover"
+        loading="lazy"
       />
       
       {/* Gradient Overlay */}

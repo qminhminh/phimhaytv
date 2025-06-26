@@ -6,90 +6,79 @@ import Link from "next/link"
 interface PaginationProps extends React.HTMLAttributes<HTMLDivElement> {
   currentPage: number
   totalPages: number
-  onPageChange?: (page: number) => void
-  baseUrl?: string
+  baseUrl: string // baseUrl is required for server-side pagination
 }
 
 export function Pagination({
   currentPage,
   totalPages,
-  onPageChange,
   baseUrl,
   className,
   ...props
 }: PaginationProps) {
+  const createPageUrl = (page: number) => {
+    const [path, queryString] = baseUrl.split('?');
+    const params = new URLSearchParams(queryString);
+    if (page > 1) {
+      params.set('page', page.toString());
+    } else {
+      params.delete('page');
+    }
+    const newQueryString = params.toString();
+    return newQueryString ? `${path}?${newQueryString}` : path;
+  };
+
   // Tính toán các trang sẽ hiển thị
   const generatePages = () => {
-    // Luôn hiển thị trang đầu, trang cuối, trang hiện tại và 1 trang trước/sau trang hiện tại
     const pages = new Set<number>()
-    pages.add(1) // Trang đầu
-    pages.add(totalPages) // Trang cuối
+    pages.add(1)
+    pages.add(totalPages)
     
-    // Trang hiện tại và các trang xung quanh
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+    for (let i = Math.max(2, currentPage - 2); i <= Math.min(totalPages - 1, currentPage + 2); i++) {
       pages.add(i)
     }
     
-    // Chuyển thành mảng và sắp xếp
     return Array.from(pages).sort((a, b) => a - b)
   }
 
   const pages = generatePages()
   
-  // Tạo các phần tử phân trang
   const renderPageItems = () => {
     const items: React.ReactNode[] = []
+    let lastPage = 0
     
     pages.forEach((page, index) => {
-      // Thêm dấu "..." nếu có khoảng cách giữa các trang
-      if (index > 0 && pages[index] - pages[index - 1] > 1) {
+      if (lastPage > 0 && page - lastPage > 1) {
         items.push(
-          <div key={`ellipsis-${index}`} className="flex items-center justify-center w-10 h-10">
+          <div key={`ellipsis-${lastPage}`} className="flex items-center justify-center w-10 h-10">
             <MoreHorizontal className="h-4 w-4 text-gray-400" />
           </div>
         )
       }
       
-      // Thêm nút trang
       items.push(
-        baseUrl ? (
-          <Link
-            key={page}
-            href={`${baseUrl}${page === 1 ? "" : `${baseUrl.includes('?') ? '&' : '?'}page=${page}`}`}
-            className={cn(
-              "w-10 h-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors",
-              currentPage === page 
-                ? "bg-yellow-500 text-black hover:bg-yellow-600" 
-                : "bg-neutral-800 text-gray-200 hover:bg-neutral-700"
-            )}
-          >
-            {page}
-          </Link>
-        ) : (
-          <button
-            key={page}
-            onClick={() => onPageChange?.(page)}
-            className={cn(
-              "w-10 h-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors",
-              currentPage === page 
-                ? "bg-yellow-500 text-black hover:bg-yellow-600" 
-                : "bg-neutral-800 text-gray-200 hover:bg-neutral-700"
-            )}
-            disabled={currentPage === page}
-          >
-            {page}
-          </button>
-        )
+        <Link
+          key={page}
+          href={createPageUrl(page)}
+          prefetch={true}
+          className={cn(
+            "w-10 h-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors",
+            currentPage === page 
+              ? "bg-yellow-500 text-black hover:bg-yellow-600 pointer-events-none" 
+              : "bg-neutral-800 text-gray-200 hover:bg-neutral-700"
+          )}
+          aria-current={currentPage === page ? 'page' : undefined}
+        >
+          {page}
+        </Link>
       )
+      lastPage = page;
     })
     
     return items
   }
 
-  // Xử lý nút Previous
   const prevPage = currentPage > 1 ? currentPage - 1 : null
-  
-  // Xử lý nút Next
   const nextPage = currentPage < totalPages ? currentPage + 1 : null
 
   return (
@@ -100,68 +89,37 @@ export function Pagination({
       {...props}
     >
       <div className="flex items-center space-x-2">
-        {/* Nút Previous */}
-        {baseUrl ? (
-          <Link
-            href={prevPage ? `${baseUrl}${prevPage === 1 ? "" : `${baseUrl.includes('?') ? '&' : '?'}page=${prevPage}`}` : "#"}
-            className={cn(
-              "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
-              "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
-              !prevPage && "pointer-events-none opacity-50"
-            )}
-            aria-disabled={!prevPage}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            <span>Trước</span>
-          </Link>
-        ) : (
-          <button
-            onClick={() => prevPage && onPageChange?.(prevPage)}
-            className={cn(
-              "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
-              "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
-              !prevPage && "opacity-50"
-            )}
-            disabled={!prevPage}
-            aria-disabled={!prevPage}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            <span>Trước</span>
-          </button>
-        )}
+        <Link
+          href={prevPage ? createPageUrl(prevPage) : "#"}
+          prefetch={!!prevPage}
+          className={cn(
+            "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
+            "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
+            !prevPage && "pointer-events-none opacity-50"
+          )}
+          aria-disabled={!prevPage}
+          tabIndex={!prevPage ? -1 : undefined}
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          <span>Trước</span>
+        </Link>
         
-        {/* Các trang */}
         {renderPageItems()}
         
-        {/* Nút Next */}
-        {baseUrl ? (
-          <Link
-            href={nextPage ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${nextPage}` : "#"}
-            className={cn(
-              "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
-              "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
-              !nextPage && "pointer-events-none opacity-50"
-            )}
-            aria-disabled={!nextPage}
-          >
-            <span>Tiếp</span>
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Link>
-        ) : (
-          <button
-            onClick={() => nextPage && onPageChange?.(nextPage)}
-            className={cn(
-              "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
-              "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
-              !nextPage && "opacity-50"
-            )}
-            disabled={!nextPage}
-            aria-disabled={!nextPage}
-          >
-            <span>Tiếp</span>
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </button>
-        )}
+        <Link
+          href={nextPage ? createPageUrl(nextPage) : "#"}
+          prefetch={!!nextPage}
+          className={cn(
+            "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
+            "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
+            !nextPage && "pointer-events-none opacity-50"
+          )}
+          aria-disabled={!nextPage}
+          tabIndex={!nextPage ? -1 : undefined}
+        >
+          <span>Tiếp</span>
+          <ChevronRight className="h-4 w-4 ml-1" />
+        </Link>
       </div>
     </nav>
   )
