@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "yarn generate-sitemap && next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-sitemap": "node scripts/generate-sitemap.js"
+    "generate-sitemap": "node scripts/generate-sitemap.js",
+    "sitemap:full": "node scripts/generate-sitemap.js --full"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
