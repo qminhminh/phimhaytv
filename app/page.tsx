@@ -18,17 +18,17 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   // Lấy dữ liệu phim tuần tự
-  const latestMovies = await getLatestMovies();
+  const latestMovies = await getLatestMovies({ limit: 17 });
   const singleMovies = await getSingleMovies({ limit: 12 });
   const seriesMovies = await getTVSeries({ limit: 12 });
-  const tvShows = await getTVSeries({ limit: 12, filterType: ['tvshows'] });
+  const tvShows = await getTVSeries({ limit: 12, filterCategory: ['tv-shows'] });
   const vietsubMovies = await getVietSubMovies({ limit: 12 });
   const thuyetMinhMovies = await getThuyetMinhMovies({ limit: 12 });
   const longTiengMovies = await getLongTiengMovies({ limit: 12 });
 
   // Tách phim cho Hero Section và danh sách phim mới
-  const featuredMovies = latestMovies.items.slice(0, 5);
-  const newMovies = latestMovies.items.slice(5, 17);
+  const featuredMovies = latestMovies.data.items.slice(0, 5);
+  const newMovies = latestMovies.data.items.slice(5, 17);
 
   const imageDomain = singleMovies.data.APP_DOMAIN_CDN_IMAGE;
 

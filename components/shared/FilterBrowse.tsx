@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, Filter, X } from 'lucide-react';
@@ -42,10 +42,18 @@ export default function FilterBrowse({
   const router = useRouter();
   
   const [sortValue, setSortValue] = useState(`${initialSortField}-${initialSortType}`);
-  const [lang, setLang] = useState(initialSortLang);
-  const [cat, setCat] = useState(initialCategory);
-  const [loc, setLoc] = useState(initialCountry);
-  const [selectedYear, setSelectedYear] = useState(initialYear?.toString());
+  const [lang, setLang] = useState(initialSortLang || 'all');
+  const [cat, setCat] = useState(initialCategory || 'all');
+  const [loc, setLoc] = useState(initialCountry || 'all');
+  const [selectedYear, setSelectedYear] = useState(initialYear?.toString() || 'all');
+
+  useEffect(() => {
+    setSortValue(`${initialSortField}-${initialSortType}`);
+    setLang(initialSortLang || 'all');
+    setCat(initialCategory || 'all');
+    setLoc(initialCountry || 'all');
+    setSelectedYear(initialYear?.toString() || 'all');
+  }, [initialSortField, initialSortType, initialSortLang, initialCategory, initialCountry, initialYear]);
 
   const handleFilter = () => {
     const [sort_field, sort_type] = sortValue.split('-');
@@ -74,10 +82,17 @@ export default function FilterBrowse({
   };
 
   const handleClear = () => {
+    // Manually reset the state to give the user immediate UI feedback
+    setSortValue('year-desc');
+    setLang('all');
+    setCat('all');
+    setLoc('all');
+    setSelectedYear('all');
+    // Then navigate to the clean URL
     router.push(baseUrl);
   };
 
-  const currentFiltersCount = [lang, cat, loc, selectedYear].filter(Boolean).length;
+  const currentFiltersCount = [lang, cat, loc, selectedYear].filter(val => val && val !== 'all').length;
 
   return (
     <div className="bg-[#1e1e1e] bg-opacity-80 backdrop-blur-sm border border-neutral-700/50 rounded-lg p-4 mb-8">

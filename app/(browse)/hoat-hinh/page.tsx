@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { getCartoons, getCategories, getCountries } from '@/lib/api';
+import { getMoviesList, getCategories, getCountries } from '@/lib/api';
 import CardViewMovie from '@/components/shared/CardViewMovie';
 import FilterBrowse from '@/components/shared/FilterBrowse';
 import { Pagination } from '@/components/ui/pagination';
@@ -32,21 +32,20 @@ export default async function HoatHinhPage({ searchParams }: HoatHinhPageProps) 
   const sortType = (searchParams.sort_type as 'desc' | 'asc') || 'desc';
   const sortLang = (searchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
   
-  const cartoonsData = await getCartoons({
-    page,
-    filterCategory: category ? [category] : undefined,
-    filterCountry: country ? [country] : undefined,
-    filterYear: year ? [year] : undefined,
-    sortField,
-    sortType,
-    limit: 24,
-  });
-  
-  const categoriesData = await getCategories();
-  const categories = categoriesData.items || [];
-  
-  const countriesData = await getCountries();
-  const countries = countriesData.items || [];
+  const [cartoonsData, categories, countries] = await Promise.all([
+    getMoviesList('hoat-hinh', {
+      page,
+      category,
+      country,
+      year,
+      sort_field: sortField,
+      sort_type: sortType,
+      sort_lang: sortLang,
+      limit: 24,
+    }),
+    getCategories(),
+    getCountries(),
+  ]);
   
   const items = cartoonsData.data.items;
   const pagination = cartoonsData.data.params.pagination;

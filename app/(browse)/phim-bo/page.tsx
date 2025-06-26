@@ -26,7 +26,7 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   const { category, country, year, sort_field, sort_type } = searchParams;
   
-  const [tvSeriesData, categoriesData, countriesData] = await Promise.all([
+  const [tvSeriesData, categories, countries] = await Promise.all([
     getMoviesList('phim-bo', {
       page,
       category,
@@ -39,9 +39,6 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
     getCategories(),
     getCountries()
   ]);
-  
-  const categories = categoriesData.items || [];
-  const countries = countriesData.items || [];
   
   const items = tvSeriesData.data.items;
   const pagination = tvSeriesData.data.params.pagination;

@@ -27,7 +27,7 @@ export default async function VietSubPage({ searchParams }: VietSubPageProps) {
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
 
-  const [vietsubData, categoriesData, countriesData] = await Promise.all([
+  const [vietsubData, categories, countries] = await Promise.all([
     getMoviesList('phim-vietsub', {
       page,
       category,
@@ -41,9 +41,6 @@ export default async function VietSubPage({ searchParams }: VietSubPageProps) {
     getCategories(),
     getCountries()
   ]);
-  
-  const categories = categoriesData.items || [];
-  const countries = countriesData.items || [];
   
   const items = vietsubData.data.items;
   const pagination = vietsubData.data.params.pagination;

@@ -27,7 +27,7 @@ export default async function LongTiengPage({ searchParams }: LongTiengPageProps
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
   
-  const [longTiengData, categoriesData, countriesData] = await Promise.all([
+  const [longTiengData, categories, countries] = await Promise.all([
     getMoviesList('phim-long-tieng', {
       page,
       category,
@@ -41,9 +41,6 @@ export default async function LongTiengPage({ searchParams }: LongTiengPageProps
     getCategories(),
     getCountries()
   ]);
-  
-  const categories = categoriesData.items || [];
-  const countries = countriesData.items || [];
   
   const items = longTiengData.data.items;
   const pagination = longTiengData.data.params.pagination;

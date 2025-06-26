@@ -1,4 +1,4 @@
-import { getMovieBySlug, getLatestMovies } from '@/lib/api';
+import { getMovieBySlug } from '@/lib/api';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';

@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getMoviesList, getCountries, getCategories } from '@/lib/api';
+import { getTVSeries, getCountries, getCategories } from '@/lib/api';
 import CardViewMovie from '@/components/shared/CardViewMovie';
 import { Pagination } from '@/components/ui/pagination';
 import { Metadata } from 'next';
@@ -27,23 +27,20 @@ export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
 
-  const [tvShowsData, categoriesData, countriesData] = await Promise.all([
-    getMoviesList('tv-shows', {
+  const [tvShowsData, categories, countries] = await Promise.all([
+    getTVSeries({
       page,
-      category,
-      country,
-      year,
-      sort_field: sort_field || 'modified.time',
-      sort_type: sort_type || 'desc',
-      sort_lang,
+      filterCategory: category ? [category] : undefined,
+      filterCountry: country ? [country] : undefined,
+      filterYear: year ? [year] : undefined,
+      sortField: sort_field || 'modified.time',
+      sortType: sort_type || 'desc',
+      sortLang: sort_lang,
       limit: 24
     }),
     getCategories(),
     getCountries()
   ]);
-  
-  const countries = countriesData.items || [];
-  const categories = categoriesData.items || [];
   
   const movies = tvShowsData.data.items || [];
   const totalPages = tvShowsData.data.params.pagination.totalPages || 1;

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { getSingleMovies, getCategories, getCountries } from '@/lib/api';
+import { getMoviesList, getCategories, getCountries } from '@/lib/api';
 import PhimBoList from '@/components/shared/CardViewMovie';
 import FilterBrowse from '@/components/shared/FilterBrowse';
 import { Pagination } from '@/components/ui/pagination';
@@ -20,11 +20,11 @@ interface PhimLePageProps {
 
 export async function generateMetadata({ searchParams }: PhimLePageProps): Promise<Metadata> {
     // Gọi API một lần để lấy dữ liệu, bao gồm cả thông tin SEO
-    const data = await getSingleMovies({
+    const data = await getMoviesList('phim-le', {
         page: searchParams.page ? parseInt(searchParams.page) : 1,
-        filterCategory: searchParams.category ? [searchParams.category] : undefined,
-        filterCountry: searchParams.country ? [searchParams.country] : undefined,
-        filterYear: searchParams.year ? [searchParams.year] : undefined,
+        category: searchParams.category,
+        country: searchParams.country,
+        year: searchParams.year,
     });
 
     const seoData = data?.data?.seoOnPage;
@@ -52,21 +52,20 @@ export default async function PhimLePage({ searchParams }: PhimLePageProps) {
   const sortType = (searchParams.sort_type as 'desc' | 'asc') || 'desc';
   const sortLang = (searchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
   
-  const singleMoviesData = await getSingleMovies({
-    page,
-    filterCategory: category ? [category] : undefined,
-    filterCountry: country ? [country] : undefined,
-    filterYear: year ? [year] : undefined,
-    sortField,
-    sortType,
-    limit: 24,
-  });
-  
-  const categoriesData = await getCategories();
-  const categories = Array.isArray(categoriesData) ? [] : categoriesData.items;
-  
-  const countriesData = await getCountries();
-  const countries = Array.isArray(countriesData) ? [] : countriesData.items;
+  const [singleMoviesData, categories, countries] = await Promise.all([
+    getMoviesList('phim-le', {
+      page,
+      category,
+      country,
+      year,
+      sort_field: sortField,
+      sort_type: sortType,
+      sort_lang: sortLang,
+      limit: 24,
+    }),
+    getCategories(),
+    getCountries(),
+  ]);
   
   const items = singleMoviesData.data.items;
   const pagination = singleMoviesData.data.params.pagination;

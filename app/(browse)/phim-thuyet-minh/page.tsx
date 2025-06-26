@@ -27,7 +27,7 @@ export default async function ThuyetMinhPage({ searchParams }: ThuyetMinhPagePro
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
 
-  const [thuyetMinhData, categoriesData, countriesData] = await Promise.all([
+  const [thuyetMinhData, categories, countries] = await Promise.all([
     getMoviesList('phim-thuyet-minh', {
       page,
       category,
@@ -41,9 +41,6 @@ export default async function ThuyetMinhPage({ searchParams }: ThuyetMinhPagePro
     getCategories(),
     getCountries()
   ]);
-  
-  const categories = categoriesData.items || [];
-  const countries = countriesData.items || [];
   
   const items = thuyetMinhData.data.items;
   const pagination = thuyetMinhData.data.params.pagination;
