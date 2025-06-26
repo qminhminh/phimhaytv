@@ -4,6 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { PlayCircle, Film, Calendar, Clock, Tv, Star } from 'lucide-react';
 import { Metadata } from 'next';
+import { Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type MovieDetailPageProps = {
     params: {
@@ -39,7 +41,14 @@ const formatServerName = (name: string) => {
 }
 
 export default async function MovieDetailPage({ params }: MovieDetailPageProps) {
-    const { slug } = params;
+    return (
+        <Suspense fallback={<MovieDetailSkeleton />}>
+            <MovieDetailContent slug={params.slug} />
+        </Suspense>
+    );
+}
+
+async function MovieDetailContent({ slug }: { slug: string }) {
     const data = await getMovieBySlug(slug);
 
     if (!data || !data.movie) {
@@ -143,6 +152,69 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
                             </div>
                         </div>
                     ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function MovieDetailSkeleton() {
+    return (
+        <div className="relative text-white min-h-screen">
+            <div className="absolute top-0 left-0 w-full h-[60vh] -z-10">
+                <Skeleton className="w-full h-full opacity-20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+            </div>
+
+            <div className="container mx-auto px-4 py-8 relative">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 pt-16">
+                    {/* Left Column: Poster Skeleton */}
+                    <div className="md:col-span-1 lg:col-span-1">
+                        <Skeleton className="rounded-lg w-full aspect-[2/3]" />
+                    </div>
+
+                    {/* Right Column: Details Skeleton */}
+                    <div className="md:col-span-2 lg:col-span-3 space-y-6">
+                        <Skeleton className="h-12 w-3/4" />
+                        <Skeleton className="h-6 w-1/2" />
+                        
+                        <div className="flex flex-wrap gap-4 pt-2">
+                            <Skeleton className="h-12 w-32 rounded-full" />
+                            <Skeleton className="h-12 w-32 rounded-full" />
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 pt-2">
+                            <Skeleton className="h-8 w-20 rounded-full" />
+                            <Skeleton className="h-8 w-24 rounded-full" />
+                            <Skeleton className="h-8 w-16 rounded-full" />
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-5/6" />
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 text-sm">
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-5 w-40" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Episodes Section Skeleton */}
+                <div className="mt-12">
+                    <Skeleton className="h-10 w-64 mb-6" />
+                    <div className="mb-8">
+                        <Skeleton className="h-12 w-full rounded-t-lg" />
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 p-4 bg-background/50 backdrop-blur-sm rounded-b-lg">
+                            {Array.from({ length: 16 }).map((_, i) => (
+                                <Skeleton key={i} className="h-10 w-full rounded-md" />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -139,9 +139,9 @@ export default function Navbar() {
             </div>
 
             {/* Notifications */}
-            <button className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
+            {/* <button className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
               <Bell size={20} />
-            </button>
+            </button> */}
 
             {/* Profile */}
             <div className="relative group">

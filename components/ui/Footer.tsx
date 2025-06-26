@@ -31,7 +31,7 @@ export default function Footer() {
           </div>
 
           {/* Quick Links */}
-          <div>
+          {/* <div>
             <h3 className="text-[#EAEAEA] font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
@@ -55,10 +55,10 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </div> */}
 
           {/* Support */}
-          <div>
+          {/* <div>
             <h3 className="text-[#EAEAEA] font-semibold mb-4">Support</h3>
             <ul className="space-y-2">
               <li>
@@ -82,7 +82,7 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </div> */}
         </div>
 
         <div className="border-t border-[#2A2A2A] mt-8 pt-8 text-center">
