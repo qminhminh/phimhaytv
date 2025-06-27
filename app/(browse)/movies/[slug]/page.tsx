@@ -112,9 +112,9 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                         {/* Categories */}
                         <div className="flex flex-wrap gap-2 pt-2">
                             {movie.category.map((c) => (
-                                <Link href={`/movies/category/${c.slug}`} key={c.slug} className="px-3 py-1 bg-gray-800/70 text-gray-300 text-sm rounded-full hover:bg-primary hover:text-white transition">
+                                <span key={c.slug} className="px-3 py-1 bg-gray-800/70 text-gray-300 text-sm rounded-full">
                                     {c.name}
-                                </Link>
+                                </span>
                             ))}
                         </div>
 
