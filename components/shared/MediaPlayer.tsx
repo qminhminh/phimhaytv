@@ -232,7 +232,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       </AlertDialog>
 
       {/* Video Element */}
-      <div className="relative aspect-video">
+      <div className="relative aspect-[4/3] sm:aspect-video">
         {useIframe ? (
           <iframe
             ref={iframeRef}
