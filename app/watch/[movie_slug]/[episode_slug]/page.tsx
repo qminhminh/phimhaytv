@@ -129,15 +129,22 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
     }
 
     const { episode: currentEpisode, serverName } = currentEpisodeData;
-    const validatedEmbedUrl = await getValidatedEmbedUrl(currentEpisode.link_embed);
-    const isEmbedUrlInvalid = !validatedEmbedUrl;
+    
+    // Ưu tiên M3U8, fallback về embed
+    const m3u8Url = currentEpisode.link_m3u8;
+    const embedUrl = await getValidatedEmbedUrl(currentEpisode.link_embed);
+
+    // Quyết định nguồn phát
+    const hasM3U8 = !!m3u8Url;
+    const hasValidEmbed = !!embedUrl;
+    const isSourceInvalid = !hasM3U8 && !hasValidEmbed;
 
     return (
         <div className="bg-background text-white min-h-screen">
             <div className="container mx-auto px-2 sm:px-4 py-6">
                 {/* Video Player */}
                 <div className="w-full mb-6">
-                    {isEmbedUrlInvalid ? (
+                    {isSourceInvalid ? (
                         <div className="text-center p-4 aspect-video bg-black flex flex-col items-center justify-center rounded-lg">
                             <div>
                                 <h3 className="text-2xl font-bold text-primary">Tập phim chưa có hoặc link đã hỏng</h3>
@@ -146,8 +153,11 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
                         </div>
                     ) : (
                         <MediaPlayer
-                            key={validatedEmbedUrl}
-                            embedUrl={validatedEmbedUrl}
+                            key={`${movie._id}-${currentEpisode.slug}`}
+                            movieId={movie._id}
+                            episodeSlug={currentEpisode.slug}
+                            m3u8Url={hasM3U8 ? m3u8Url : undefined}
+                            embedUrl={!hasM3U8 && hasValidEmbed ? embedUrl : undefined}
                             title={`${movie.name} - ${currentEpisode.name}`}
                             poster={movie.poster_url || movie.thumb_url}
                         />

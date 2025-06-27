@@ -2,6 +2,17 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward } from 'lucide-react';
+import Hls from 'hls.js';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface MediaPlayerProps {
   embedUrl?: string;
@@ -9,19 +20,69 @@ interface MediaPlayerProps {
   title?: string;
   poster?: string;
   videoUrl?: string;
+  movieId?: string;
+  episodeSlug?: string;
 }
 
-export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl }: MediaPlayerProps) {
+export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl, movieId, episodeSlug }: MediaPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [resumeTime, setResumeTime] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const lastSaveTimestampRef = useRef(0);
+
+  const progressKey = `movie-progress-${movieId}-${episodeSlug}`;
 
   // Nếu có embedUrl, ưu tiên sử dụng iframe
   const useIframe = !!embedUrl;
+
+  useEffect(() => {
+    if (m3u8Url && videoRef.current) {
+        const video = videoRef.current;
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hlsRef.current = hls;
+            hls.loadSource(m3u8Url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                // Autoplay can be handled here if needed
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = m3u8Url;
+        }
+
+        return () => {
+            if (hlsRef.current) {
+                hlsRef.current.destroy();
+                hlsRef.current = null;
+            }
+        };
+    }
+  }, [m3u8Url]);
+
+  useEffect(() => {
+    if (useIframe || !movieId || !episodeSlug) return;
+
+    try {
+        const savedProgress = localStorage.getItem(progressKey);
+        if (savedProgress) {
+            const { currentTime: savedTime, timestamp } = JSON.parse(savedProgress);
+            const oneHour = 3600 * 1000;
+            if (Date.now() - timestamp < oneHour && savedTime > 5) { // Chỉ hỏi nếu đã xem hơn 5s
+                setResumeTime(savedTime);
+                setShowResumeDialog(true);
+            }
+        }
+    } catch (error) {
+        console.error("Failed to read progress from localStorage", error);
+    }
+  }, [progressKey, useIframe, movieId, episodeSlug]);
 
   const togglePlay = () => {
     if (videoRef.current && !useIframe) {
@@ -43,7 +104,25 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
   const handleTimeUpdate = () => {
     if (videoRef.current && !useIframe) {
-      setCurrentTime(videoRef.current.currentTime);
+      const currentTime = videoRef.current.currentTime;
+      setCurrentTime(currentTime);
+
+      if (movieId && episodeSlug) {
+        const now = Date.now();
+        // Lưu tiến trình mỗi 15 giây
+        if (now - lastSaveTimestampRef.current > 15000) {
+            try {
+                const progress = {
+                    currentTime: currentTime,
+                    timestamp: now,
+                };
+                localStorage.setItem(progressKey, JSON.stringify(progress));
+                lastSaveTimestampRef.current = now;
+            } catch (error) {
+                console.error("Failed to save progress to localStorage", error);
+            }
+        }
+      }
     }
   };
 
@@ -79,6 +158,22 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const handleResume = () => {
+    if (videoRef.current) {
+        videoRef.current.currentTime = resumeTime;
+        videoRef.current.play();
+        setIsPlaying(true);
+    }
+    setShowResumeDialog(false);
+  };
+
+  const handleDismissResume = () => {
+      if (movieId && episodeSlug) {
+          localStorage.removeItem(progressKey);
+      }
+      setShowResumeDialog(false);
+  };
+
   const toggleFullscreen = () => {
     if (useIframe && iframeRef.current) {
       if (document.fullscreenElement) {
@@ -97,6 +192,21 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
   return (
     <div className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20">
+      <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Tiếp tục xem?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Bạn đã xem đến {formatTime(resumeTime)}. Bạn có muốn xem tiếp từ đây không?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={handleDismissResume}>Không, bắt đầu lại</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResume}>Có, xem tiếp</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Video Element */}
       <div className="relative aspect-video">
         {useIframe ? (
@@ -117,7 +227,8 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             poster={poster}
-            controls={!!m3u8Url} // Hiển thị controls mặc định nếu sử dụng m3u8
+            controls={false} // Luôn dùng controls tùy chỉnh
+            onClick={togglePlay}
           >
             {videoUrl && <source src={videoUrl} type="video/mp4" />}
             {m3u8Url && <source src={m3u8Url} type="application/x-mpegURL" />}
@@ -133,8 +244,8 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           </div>
         )}
         
-        {/* Play/Pause Overlay - chỉ hiển thị khi không dùng iframe và không dùng m3u8 */}
-        {!useIframe && !m3u8Url && (
+        {/* Play/Pause Overlay - chỉ hiển thị khi không dùng iframe */}
+        {!useIframe && (
           <div 
             className="absolute inset-0 flex items-center justify-center cursor-pointer"
             onClick={togglePlay}
@@ -148,8 +259,8 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         )}
       </div>
       
-      {/* Controls - chỉ hiển thị khi không dùng iframe và không dùng m3u8 */}
-      {!useIframe && !m3u8Url && (
+      {/* Controls - chỉ hiển thị khi không dùng iframe */}
+      {!useIframe && (
         <div className="bg-[#1A1A1A] p-4">
           {/* Progress Bar */}
           <div className="mb-4">
