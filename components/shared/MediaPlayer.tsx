@@ -67,21 +67,36 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   }, [m3u8Url]);
 
   useEffect(() => {
-    if (useIframe || !movieId || !episodeSlug) return;
+    if (useIframe || !movieId || !episodeSlug) {
+        setShowResumeDialog(false);
+        return;
+    };
+
+    let isMounted = true;
 
     try {
         const savedProgress = localStorage.getItem(progressKey);
         if (savedProgress) {
             const { currentTime: savedTime, timestamp } = JSON.parse(savedProgress);
             const oneHour = 3600 * 1000;
-            if (Date.now() - timestamp < oneHour && savedTime > 5) { // Chỉ hỏi nếu đã xem hơn 5s
+            // Chỉ hiển thị dialog nếu component vẫn còn mounted
+            if (isMounted && Date.now() - timestamp < oneHour && savedTime > 5) { 
                 setResumeTime(savedTime);
                 setShowResumeDialog(true);
+            } else {
+                setShowResumeDialog(false);
             }
+        } else {
+            setShowResumeDialog(false);
         }
     } catch (error) {
         console.error("Failed to read progress from localStorage", error);
+        setShowResumeDialog(false);
     }
+
+    return () => {
+        isMounted = false;
+    };
   }, [progressKey, useIframe, movieId, episodeSlug]);
 
   const togglePlay = () => {
