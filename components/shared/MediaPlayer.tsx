@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, ArrowRightFromLine } from 'lucide-react';
 import Hls from 'hls.js';
 import {
     AlertDialog,
@@ -22,9 +23,12 @@ interface MediaPlayerProps {
   videoUrl?: string;
   movieId?: string;
   episodeSlug?: string;
+  movieSlug?: string;
+  nextEpisodeSlug?: string;
 }
 
-export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl, movieId, episodeSlug }: MediaPlayerProps) {
+export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl, movieId, episodeSlug, movieSlug, nextEpisodeSlug }: MediaPlayerProps) {
+  const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -80,7 +84,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             const { currentTime: savedTime, timestamp } = JSON.parse(savedProgress);
             const oneHour = 3600 * 1000;
             // Chỉ hiển thị dialog nếu component vẫn còn mounted
-            if (isMounted && Date.now() - timestamp < oneHour && savedTime > 5) { 
+            if (isMounted && Date.now() - timestamp < oneHour && savedTime > 5) {
                 setResumeTime(savedTime);
                 setShowResumeDialog(true);
             } else {
@@ -101,12 +105,11 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
   const togglePlay = () => {
     if (videoRef.current && !useIframe) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
+      if (videoRef.current.paused) {
         videoRef.current.play();
+      } else {
+        videoRef.current.pause();
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -189,6 +192,12 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       setShowResumeDialog(false);
   };
 
+  const playNextEpisode = () => {
+    if (movieSlug && nextEpisodeSlug) {
+        router.push(`/watch/${movieSlug}/${nextEpisodeSlug}`);
+    }
+  };
+
   const toggleFullscreen = () => {
     if (useIframe && iframeRef.current) {
       if (document.fullscreenElement) {
@@ -239,6 +248,8 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             poster={poster}
@@ -249,7 +260,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             {m3u8Url && <source src={m3u8Url} type="application/x-mpegURL" />}
           </video>
         ) : (
-          <div 
+          <div
             className="w-full h-full bg-cover bg-center flex items-center justify-center"
             style={{ backgroundImage: poster ? `url(${poster})` : 'none', backgroundColor: '#000' }}
           >
@@ -258,10 +269,10 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             </div>
           </div>
         )}
-        
+
         {/* Play/Pause Overlay - chỉ hiển thị khi không dùng iframe */}
         {!useIframe && (
-          <div 
+          <div
             className="absolute inset-0 flex items-center justify-center cursor-pointer"
             onClick={togglePlay}
           >
@@ -273,7 +284,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           </div>
         )}
       </div>
-      
+
       {/* Controls - chỉ hiển thị khi không dùng iframe */}
       {!useIframe && (
         <div className="bg-[#1A1A1A] p-4">
@@ -292,7 +303,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
               <span>{formatTime(duration)}</span>
             </div>
           </div>
-          
+
           {/* Control Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -302,22 +313,32 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
               >
                 <SkipBack className="w-6 h-6" />
               </button>
-              
+
               <button
                 onClick={togglePlay}
                 className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-[#121212] p-3 rounded-full transition-colors"
               >
                 {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" fill="currentColor" />}
               </button>
-              
+
               <button
                 onClick={() => videoRef.current && (videoRef.current.currentTime += 10)}
                 className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
               >
                 <SkipForward className="w-6 h-6" />
               </button>
+
+              {nextEpisodeSlug && (
+                <button
+                    onClick={playNextEpisode}
+                    className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
+                    title="Tập tiếp theo"
+                >
+                    <ArrowRightFromLine className="w-6 h-6" />
+                </button>
+              )}
             </div>
-            
+
             <div className="flex items-center space-x-4">
               {/* Volume Control */}
               <div className="flex items-center space-x-2">
@@ -337,7 +358,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
                   className="w-20 h-2 bg-[#2A2A2A] rounded-lg appearance-none cursor-pointer"
                 />
               </div>
-              
+
               {/* Fullscreen */}
               <button
                 onClick={toggleFullscreen}

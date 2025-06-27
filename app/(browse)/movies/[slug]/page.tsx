@@ -62,6 +62,11 @@ async function MovieDetailContent({ slug }: { slug: string }) {
     return (
         <div className="relative text-white min-h-screen">
             {/* Background Image */}
+            <div className="container mx-auto px-4 py-8 relative">
+                <Link href={`/`} className="text-sm text-primary hover:underline mt-4 inline-block">
+                    &larr; Quay lại
+                </Link>
+            </div>
             <div className="absolute top-0 left-0 w-full h-[60vh] -z-10">
                 <Image
                     src={posterUrl}

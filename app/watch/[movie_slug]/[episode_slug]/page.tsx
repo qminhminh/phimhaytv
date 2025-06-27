@@ -134,6 +134,13 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
     const m3u8Url = currentEpisode.link_m3u8;
     const embedUrl = await getValidatedEmbedUrl(currentEpisode.link_embed);
 
+    // Find next episode slug
+    const serverGroup = episodes.find(group => group.server_name === serverName);
+    const currentEpisodeIndex = serverGroup ? serverGroup.server_data.findIndex(ep => ep.slug === currentEpisode.slug) : -1;
+    const nextEpisodeSlug = serverGroup && currentEpisodeIndex !== -1 && currentEpisodeIndex < serverGroup.server_data.length - 1
+        ? serverGroup.server_data[currentEpisodeIndex + 1].slug
+        : null;
+
     // Quyết định nguồn phát
     const hasM3U8 = !!m3u8Url;
     const hasValidEmbed = !!embedUrl;
@@ -156,6 +163,8 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
                             key={`${movie._id}-${currentEpisode.slug}`}
                             movieId={movie._id}
                             episodeSlug={currentEpisode.slug}
+                            movieSlug={movie.slug}
+                            nextEpisodeSlug={nextEpisodeSlug || undefined}
                             m3u8Url={hasM3U8 ? m3u8Url : undefined}
                             embedUrl={!hasM3U8 && hasValidEmbed ? embedUrl : undefined}
                             title={`${movie.name} - ${currentEpisode.name}`}
@@ -173,7 +182,6 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
                     <Link href={`/movies/${movie.slug}`} className="text-sm text-primary hover:underline mt-4 inline-block">
                         &larr; Quay lại trang thông tin phim
                     </Link>
-
                     <div className="mt-4 flex items-center gap-2">
                         <p className="text-sm text-gray-400">Không tải được phim? Hãy thử:</p>
                         <RefreshButton />
