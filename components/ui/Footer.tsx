@@ -85,8 +85,15 @@ export default function Footer() {
           </div> */}
         </div>
 
-        <div className="border-t border-[#2A2A2A] mt-8 pt-8 text-center">
-          <p>&copy; 2025 PhimHayTV. All rights reserved.</p>
+        <div className="border-t border-[#2A2A2A] mt-8 pt-8 text-left">
+          <h3 className="font-semibold text-white mb-2">Miễn trừ trách nhiệm</h3>
+          <p className="text-xs text-gray-400 mb-2">
+            Trang web này cung cấp nội dung anime chỉ với mục đích giải trí và không chịu trách nhiệm về bất kỳ nội dung quảng cáo, liên kết của bên thứ ba hiển thị trên trang web của chúng tôi.
+          </p>
+          <p className="text-xs text-gray-400 mb-6">
+            Tất cả thông tin và hình ảnh trên website đều được thu thập từ internet. Chúng tôi không chịu trách nhiệm về bất kỳ nội dung nào. Nếu bạn hoặc tổ chức của bạn có vấn đề gì liên quan đến nội dung hiển thị trên website, vui lòng liên hệ với chúng tôi để được giải quyết.
+          </p>
+          <p className="text-center">&copy; 2025 PhimHayTV. All rights reserved.</p>
         </div>
       </div>
     </footer>
