@@ -12,13 +12,11 @@ const mainNavItems = [
   { title: 'Phim bộ', href: '/phim-bo' },
   { title: 'TV Shows', href: '/tv-shows' },
   { title: 'Hoạt hình', href: '/hoat-hinh' },
-];
-
-const subNavItems = [
   { title: 'Việt sub', href: '/vietsub' },
   { title: 'Thuyết minh', href: '/phim-thuyet-minh' },
   { title: 'Lồng tiếng', href: '/phim-long-tieng' },
 ];
+
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -91,19 +89,7 @@ export default function Navbar() {
               </Link>
             ))}
             
-            {subNavItems.map((item) => (
-              <Link 
-                key={item.href}
-                href={item.href} 
-                className={`text-sm font-medium transition-colors ${
-                  isActive(item.href) 
-                    ? 'text-[#FFD700]' 
-                    : 'text-gray-400 hover:text-[#FFD700]'
-                }`}
-              >
-                {item.title}
-              </Link>
-            ))}
+            
           </div>
 
           {/* Right Side */}
@@ -190,7 +176,7 @@ export default function Navbar() {
               </Link>
             ))}
             
-            {subNavItems.map((item) => (
+            {mainNavItems.map((item) => (
               <Link 
                 key={item.href}
                 href={item.href} 
