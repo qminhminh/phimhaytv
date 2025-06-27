@@ -247,7 +247,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         ) : videoUrl || m3u8Url ? (
           <video
             ref={videoRef}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onTimeUpdate={handleTimeUpdate}
