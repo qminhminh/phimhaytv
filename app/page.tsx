@@ -35,7 +35,7 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-[#121212]">
       <h1 className="sr-only">PhimHayTV - Xem Phim Online, Phim Mới, Phim HD</h1>
-      <HeroSection movies={featuredMovies} />
+      <HeroSection movies={featuredMovies as any} />
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-4">
