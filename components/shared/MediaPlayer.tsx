@@ -193,10 +193,10 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   return (
     <div className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20">
       <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
             <AlertDialogHeader>
                 <AlertDialogTitle>Tiếp tục xem?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogDescription className="text-zinc-400">
                     Bạn đã xem đến {formatTime(resumeTime)}. Bạn có muốn xem tiếp từ đây không?
                 </AlertDialogDescription>
             </AlertDialogHeader>
