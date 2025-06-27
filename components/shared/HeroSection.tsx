@@ -62,7 +62,9 @@ export default function HeroSection({ movies }: HeroSectionProps) {
       case 'single':
         return `/movies/${movieItem.slug}`;
       case 'series':
+        return `/movies/${movieItem.slug}`;
       case 'hoathinh':
+        return `/movies/${movieItem.slug}`;
       case 'tvshows':
         return `/movies/${movieItem.slug}`;
       default:
