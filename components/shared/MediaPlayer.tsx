@@ -36,6 +36,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const [volume, setVolume] = useState(1);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [resumeTime, setResumeTime] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -206,6 +207,18 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       setShowResumeDialog(false);
   };
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const playNextEpisode = () => {
     if (movieSlug && nextEpisodeSlug) {
         router.push(`/watch/${movieSlug}/${nextEpisodeSlug}`);
@@ -290,7 +303,10 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       </AlertDialog>
 
       {/* Video Element */}
-      <div className="relative aspect-[4/3] sm:aspect-video" onClick={togglePlay}>
+      <div 
+        className={`relative ${isFullscreen ? 'w-full h-full' : 'aspect-[4/3] sm:aspect-video'}`}
+        onClick={togglePlay}
+      >
         {useIframe ? (
           <iframe
             ref={iframeRef}
@@ -305,7 +321,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         ) : videoUrl || m3u8Url ? (
           <video
             ref={videoRef}
-            className="w-full h-full object-contain"
+            className={`w-full h-full ${isFullscreen ? 'object-cover' : 'object-contain'}`}
             playsInline
             poster={poster}
             onClick={togglePlay}
