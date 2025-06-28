@@ -6,6 +6,7 @@ import { PlayCircle, Film, Calendar, Clock, Tv, Star } from 'lucide-react';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SimilarMovies } from '@/components/shared/SimilarMovies';
 
 type MovieDetailPageProps = {
     params: {
@@ -58,6 +59,7 @@ async function MovieDetailContent({ slug }: { slug: string }) {
     const { movie, episodes } = data;
     const posterUrl = movie.poster_url;
     const firstEpisode = episodes?.[0]?.server_data?.[0];
+    const firstCategory = movie.category?.[0];
 
     return (
         <div className="relative text-white min-h-screen">
@@ -154,6 +156,17 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                         </div>
                     ))}
                 </div>
+
+                {/* Similar Movies Section */}
+                {firstCategory && (
+                     <Suspense fallback={<SimilarMoviesSkeleton />}>
+                        <SimilarMovies 
+                            categorySlug={firstCategory.slug} 
+                            type={movie.type}
+                            currentMovieSlug={movie.slug}
+                        />
+                    </Suspense>
+                )}
             </div>
         </div>
     );
@@ -220,4 +233,18 @@ function MovieDetailSkeleton() {
             </div>
         </div>
     );
+}
+
+function SimilarMoviesSkeleton() {
+    return (
+        <div className="mt-12">
+            <Skeleton className="h-10 w-64 mb-6" />
+            <div className="flex gap-4">
+                <Skeleton className="flex-none w-64 h-96 rounded-lg" />
+                <Skeleton className="flex-none w-64 h-96 rounded-lg" />
+                <Skeleton className="flex-none w-64 h-96 rounded-lg" />
+                <Skeleton className="flex-none w-64 h-96 rounded-lg" />
+            </div>
+        </div>
+    )
 } 
