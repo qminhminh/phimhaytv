@@ -14,6 +14,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 interface MediaPlayerProps {
   embedUrl?: string;
@@ -36,6 +37,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const [volume, setVolume] = useState(1);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [resumeTime, setResumeTime] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -103,6 +105,24 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         isMounted = false;
     };
   }, [progressKey, useIframe, movieId, episodeSlug]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   const togglePlay = useCallback(() => {
     if (videoRef.current && !useIframe) {
@@ -290,7 +310,13 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       </AlertDialog>
 
       {/* Video Element */}
-      <div className="relative aspect-[4/3] sm:aspect-video" onClick={togglePlay}>
+      <div 
+        className={cn(
+            "relative", 
+            !isFullscreen ? "aspect-[4/3] sm:aspect-video" : "w-full h-full"
+        )} 
+        onClick={togglePlay}
+      >
         {useIframe ? (
           <iframe
             ref={iframeRef}
