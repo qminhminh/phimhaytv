@@ -59,7 +59,6 @@ async function MovieDetailContent({ slug }: { slug: string }) {
     const { movie, episodes } = data;
     const posterUrl = movie.poster_url;
     const firstEpisode = episodes?.[0]?.server_data?.[0];
-    const firstCategory = movie.category?.[0];
 
     return (
         <div className="relative text-white min-h-screen">
@@ -111,15 +110,6 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                             )}
                         </div>
                         
-                        {/* Categories */}
-                        <div className="flex flex-wrap gap-2 pt-2">
-                            {movie.category.map((c) => (
-                                <span key={c.slug} className="px-3 py-1 bg-gray-800/70 text-gray-300 text-sm rounded-full">
-                                    {c.name}
-                                </span>
-                            ))}
-                        </div>
-
                         {/* Synopsis */}
                         <div className="prose prose-invert max-w-none text-gray-300 pt-2" dangerouslySetInnerHTML={{ __html: movie.content }}></div>
 
@@ -158,15 +148,24 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                 </div>
 
                 {/* Similar Movies Section */}
-                {firstCategory && (
-                     <Suspense fallback={<SimilarMoviesSkeleton />}>
-                        <SimilarMovies 
-                            categorySlug={firstCategory.slug} 
-                            type={movie.type}
+                <Suspense fallback={<SimilarMoviesSkeleton />}>
+                    {movie.country.map((country) => (
+                        <SimilarMovies
+                            key={`country-${country.slug}`}
+                            filter={{ type: 'country', ...country }}
+                            movieType={movie.type}
                             currentMovieSlug={movie.slug}
                         />
-                    </Suspense>
-                )}
+                    ))}
+                    {movie.category.map((cat) => (
+                        <SimilarMovies
+                            key={`category-${cat.slug}`}
+                            filter={{ type: 'category', ...cat }}
+                            movieType={movie.type}
+                            currentMovieSlug={movie.slug}
+                        />
+                    ))}
+                </Suspense>
             </div>
         </div>
     );
@@ -197,12 +196,6 @@ function MovieDetailSkeleton() {
                             <Skeleton className="h-12 w-32 rounded-full" />
                         </div>
                         
-                        <div className="flex flex-wrap gap-2 pt-2">
-                            <Skeleton className="h-8 w-20 rounded-full" />
-                            <Skeleton className="h-8 w-24 rounded-full" />
-                            <Skeleton className="h-8 w-16 rounded-full" />
-                        </div>
-
                         <div className="space-y-3 pt-2">
                             <Skeleton className="h-4 w-full" />
                             <Skeleton className="h-4 w-full" />
@@ -239,11 +232,13 @@ function SimilarMoviesSkeleton() {
     return (
         <div className="mt-12">
             <Skeleton className="h-10 w-64 mb-6" />
-            <div className="flex gap-4">
-                <Skeleton className="flex-none w-64 h-96 rounded-lg" />
-                <Skeleton className="flex-none w-64 h-96 rounded-lg" />
-                <Skeleton className="flex-none w-64 h-96 rounded-lg" />
-                <Skeleton className="flex-none w-64 h-96 rounded-lg" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <Skeleton className="w-full aspect-[2/3] rounded-lg" />
+                <Skeleton className="w-full aspect-[2/3] rounded-lg" />
+                <Skeleton className="w-full aspect-[2/3] rounded-lg" />
+                <Skeleton className="w-full aspect-[2/3] rounded-lg" />
+                <Skeleton className="w-full aspect-[2/3] rounded-lg" />
+                <Skeleton className="w-full aspect-[2/3] rounded-lg" />
             </div>
         </div>
     )

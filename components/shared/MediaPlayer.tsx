@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, ArrowRightFromLine } from 'lucide-react';
 import Hls from 'hls.js';
@@ -37,6 +37,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [resumeTime, setResumeTime] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastSaveTimestampRef = useRef(0);
@@ -103,7 +104,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     };
   }, [progressKey, useIframe, movieId, episodeSlug]);
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (videoRef.current && !useIframe) {
       if (videoRef.current.paused) {
         videoRef.current.play();
@@ -111,14 +112,15 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         videoRef.current.pause();
       }
     }
-  };
+  }, [useIframe]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (videoRef.current && !useIframe) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+      const newMutedState = !videoRef.current.muted;
+      videoRef.current.muted = newMutedState;
+      setIsMuted(newMutedState);
     }
-  };
+  }, [useIframe]);
 
   const handleTimeUpdate = () => {
     if (videoRef.current && !useIframe) {
@@ -210,24 +212,68 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     }
   };
 
-  const toggleFullscreen = () => {
+  const handleSkipIntro = () => {
+    if (videoRef.current) {
+        videoRef.current.currentTime += 80;
+    }
+  };
+
+  const toggleFullscreen = useCallback(() => {
     if (useIframe && iframeRef.current) {
       if (document.fullscreenElement) {
         document.exitFullscreen();
       } else {
         iframeRef.current.requestFullscreen();
       }
-    } else if (videoRef.current) {
+    } else if (playerContainerRef.current) {
       if (document.fullscreenElement) {
         document.exitFullscreen();
       } else {
-        videoRef.current.requestFullscreen();
+        playerContainerRef.current.requestFullscreen();
       }
     }
-  };
+  }, [useIframe]);
+
+  useEffect(() => {
+    if (useIframe) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Dừng các hành động mặc định của trình duyệt cho các phím này khi trình phát được focus
+      if ([' ', 'ArrowLeft', 'ArrowRight', 'f', 'm'].includes(e.key)) {
+        e.preventDefault();
+      }
+
+      switch (e.key) {
+        case ' ':
+          togglePlay();
+          break;
+        case 'ArrowRight':
+          if (videoRef.current) videoRef.current.currentTime += 10;
+          break;
+        case 'ArrowLeft':
+          if (videoRef.current) videoRef.current.currentTime -= 10;
+          break;
+      }
+    };
+    
+    const playerEl = playerContainerRef.current;
+    if (playerEl) {
+      playerEl.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      if (playerEl) {
+        playerEl.removeEventListener('keydown', handleKeyDown);
+      }
+    };
+  }, [useIframe, togglePlay]);
 
   return (
-    <div className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20">
+    <div 
+      ref={playerContainerRef} 
+      className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20 focus:outline-none"
+      tabIndex={0}
+    >
       <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
         <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
             <AlertDialogHeader>
@@ -244,7 +290,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       </AlertDialog>
 
       {/* Video Element */}
-      <div className="relative aspect-[4/3] sm:aspect-video">
+      <div className="relative aspect-[4/3] sm:aspect-video" onClick={togglePlay}>
         {useIframe ? (
           <iframe
             ref={iframeRef}
@@ -289,106 +335,60 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           </div>
         )}
 
-        {/* Play/Pause Overlay - chỉ hiển thị khi không dùng iframe */}
-        {!useIframe && (
-          <div
-            className="absolute inset-0 flex items-center justify-center cursor-pointer"
-            onClick={togglePlay}
-          >
-            {!isPlaying && (
-              <div className="bg-black/50 rounded-full p-4">
-                <Play className="w-16 h-16 text-[#FFD700]" fill="currentColor" />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Controls - chỉ hiển thị khi không dùng iframe */}
-      {!useIframe && (
-        <div className="bg-[#1A1A1A] p-4">
-          {/* Progress Bar */}
-          <div className="mb-4">
+        {/* Custom Controls */}
+        <div 
+          className="absolute inset-0 flex flex-col justify-between opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300 group"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Top controls could go here if needed */}
+          <div></div>
+          {/* Bottom controls */}
+          <div className="p-4 bg-gradient-to-t from-black/70 to-transparent">
+            {/* Progress Bar */}
             <input
               type="range"
               min="0"
               max={duration}
               value={currentTime}
               onChange={handleSeek}
-              className="w-full h-2 bg-[#2A2A2A] rounded-lg appearance-none cursor-pointer slider"
+              className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer range-sm accent-red-500"
             />
-            <div className="flex justify-between text-sm text-[#A0A0A0] mt-1">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-          </div>
-
-          {/* Control Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => videoRef.current && (videoRef.current.currentTime -= 10)}
-                className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
-              >
-                <SkipBack className="w-6 h-6" />
-              </button>
-
-              <button
-                onClick={togglePlay}
-                className="bg-[#FFD700] hover:bg-[#FFD700]/90 text-[#121212] p-3 rounded-full transition-colors"
-              >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" fill="currentColor" />}
-              </button>
-
-              <button
-                onClick={() => videoRef.current && (videoRef.current.currentTime += 10)}
-                className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
-              >
-                <SkipForward className="w-6 h-6" />
-              </button>
-
-              {nextEpisodeSlug && (
-                <button
-                    onClick={playNextEpisode}
-                    className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
-                    title="Tập tiếp theo"
-                >
-                    <ArrowRightFromLine className="w-6 h-6" />
+            <div className="flex items-center justify-between text-white mt-2">
+              <div className="flex items-center space-x-4">
+                <button onClick={togglePlay} className="focus:outline-none">
+                  {isPlaying ? <Pause size={24} /> : <Play size={24} />}
                 </button>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-4">
-              {/* Volume Control */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={toggleMute}
-                  className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
-                >
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                <button onClick={toggleMute} className="focus:outline-none">
+                  {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
                 </button>
                 <input
                   type="range"
                   min="0"
                   max="1"
                   step="0.1"
-                  value={volume}
+                  value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-20 h-2 bg-[#2A2A2A] rounded-lg appearance-none cursor-pointer"
+                  className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer range-sm accent-red-500"
                 />
+                <span className="text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
               </div>
-
-              {/* Fullscreen */}
-              <button
-                onClick={toggleFullscreen}
-                className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
-              >
-                <Maximize className="w-5 h-5" />
-              </button>
+              <div className="flex items-center space-x-4">
+                <button onClick={handleSkipIntro} className="focus:outline-none" title="Tua 80 giây">
+                  <SkipForward size={24} />
+                </button>
+                {nextEpisodeSlug && (
+                    <button onClick={playNextEpisode} className="focus:outline-none p-2 rounded-full hover:bg-white/10" title="Tập tiếp theo">
+                        <ArrowRightFromLine size={20} />
+                    </button>
+                )}
+                <button onClick={toggleFullscreen} className="focus:outline-none">
+                  <Maximize size={24} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
