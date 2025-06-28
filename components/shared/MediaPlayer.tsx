@@ -42,6 +42,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastSaveTimestampRef = useRef(0);
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const progressKey = `movie-progress-${movieId}-${episodeSlug}`;
 
@@ -207,6 +208,31 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       setShowResumeDialog(false);
   };
 
+  const handleVideoAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (useIframe || !videoRef.current) return;
+
+    if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = null;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        
+        const oneThirdWidth = rect.width / 3;
+
+        if (clickX < oneThirdWidth) {
+            videoRef.current.currentTime -= 10;
+        } else if (clickX > oneThirdWidth * 2) {
+            videoRef.current.currentTime += 10;
+        }
+    } else {
+        tapTimeoutRef.current = setTimeout(() => {
+            togglePlay();
+            tapTimeoutRef.current = null;
+        }, 300);
+    }
+  };
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -305,7 +331,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       {/* Video Element */}
       <div 
         className={`relative ${isFullscreen ? 'w-full h-full' : 'aspect-[4/3] sm:aspect-video'}`}
-        onClick={togglePlay}
+        onClick={handleVideoAreaClick}
       >
         {useIframe ? (
           <iframe
@@ -324,7 +350,6 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             className={`w-full h-full ${isFullscreen ? 'object-cover' : 'object-contain'}`}
             playsInline
             poster={poster}
-            onClick={togglePlay}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onTimeUpdate={handleTimeUpdate}
