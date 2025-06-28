@@ -59,6 +59,7 @@ interface CardViewMovieProps {
 
 const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [imageErrorCache, setImageErrorCache] = useState<Record<string, boolean>>({});
   
   const getLink = (item: GenericMovieItem) => {
     return `/movies/${item.slug}`;
@@ -67,13 +68,19 @@ const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => 
   const getImageUrl = (item: GenericMovieItem) => {
     const fallbackDomain = 'https://phimimg.com';
     const imageUrl = item.poster_url || item.thumb_url;
-    if (!imageUrl) return ''; // Trả về chuỗi rỗng nếu không có URL
+    if (!imageUrl) return '/logoPhimHayTV.png';
     if (imageUrl.startsWith('http')) return imageUrl;
     return `${imageDomain || fallbackDomain}/${imageUrl}`;
   };
 
   const handleClick = () => {
     setIsLoading(true);
+  };
+
+  const handleImageError = (itemId: string) => {
+    if (!imageErrorCache[itemId]) {
+      setImageErrorCache(prev => ({ ...prev, [itemId]: true }));
+    }
   };
 
   return (
@@ -102,12 +109,13 @@ const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => 
           >
             <div className="relative aspect-[2/3] overflow-hidden">
               <Image
-                src={getImageUrl(item)}
+                src={imageErrorCache[item._id] ? '/logoPhimHayTV.png' : getImageUrl(item)}
                 alt={item.name}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"
+                onError={() => handleImageError(item._id)}
               />
               
               {/* Overlay gradient */}
