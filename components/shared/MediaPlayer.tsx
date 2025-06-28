@@ -37,12 +37,14 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [resumeTime, setResumeTime] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastSaveTimestampRef = useRef(0);
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const progressKey = `movie-progress-${movieId}-${episodeSlug}`;
 
@@ -227,11 +229,29 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         }
     } else {
         tapTimeoutRef.current = setTimeout(() => {
-            togglePlay();
+            setShowControls(prev => !prev);
             tapTimeoutRef.current = null;
         }, 300);
     }
   };
+
+  const handleMouseMove = () => {
+    setShowControls(true);
+  };
+
+  useEffect(() => {
+    if (showControls && isPlaying) {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
+    } else if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [showControls, isPlaying]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -312,6 +332,8 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       ref={playerContainerRef} 
       className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20 focus:outline-none"
       tabIndex={0}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => { if (isPlaying) setShowControls(false) }}
     >
       <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
         <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
@@ -347,7 +369,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         ) : videoUrl || m3u8Url ? (
           <video
             ref={videoRef}
-            className={`w-full h-full ${isFullscreen ? 'object-cover' : 'object-contain'}`}
+            className="w-full h-full object-contain"
             playsInline
             poster={poster}
             onPlay={() => setIsPlaying(true)}
@@ -378,7 +400,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
         {/* Custom Controls */}
         <div 
-          className="absolute inset-0 flex flex-col justify-between opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300 group"
+          className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top controls could go here if needed */}
