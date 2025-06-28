@@ -123,8 +123,20 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const handleTimeUpdate = () => {
     if (videoRef.current && !useIframe) {
       const currentTime = videoRef.current.currentTime;
+      const duration = videoRef.current.duration;
       setCurrentTime(currentTime);
 
+      // Nếu người dùng đã xem hơn 98% thời lượng, hãy xóa tiến trình đã lưu
+      // để không hiển thị hộp thoại tiếp tục ở tập sau.
+      if (duration > 0 && currentTime / duration > 0.98) {
+        try {
+          localStorage.removeItem(progressKey);
+        } catch (error) {
+           console.error("Failed to remove progress from localStorage", error);
+        }
+        return; // Dừng lại để không lưu lại tiến trình mới
+      }
+      
       if (movieId && episodeSlug) {
         const now = Date.now();
         // Lưu tiến trình mỗi 15 giây
@@ -248,13 +260,20 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           <video
             ref={videoRef}
             className="w-full h-full object-contain"
+            playsInline
+            poster={poster}
+            onClick={togglePlay}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
-            poster={poster}
-            controls={false} // Luôn dùng controls tùy chỉnh
-            onClick={togglePlay}
+            onVolumeChange={() => {
+              if (videoRef.current) {
+                setIsMuted(videoRef.current.muted);
+                setVolume(videoRef.current.volume);
+              }
+            }}
+            onEnded={playNextEpisode}
           >
             {videoUrl && <source src={videoUrl} type="video/mp4" />}
             {m3u8Url && <source src={m3u8Url} type="application/x-mpegURL" />}
