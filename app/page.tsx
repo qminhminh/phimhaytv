@@ -28,7 +28,7 @@ export default async function Home() {
 
   // Tách phim cho Hero Section và danh sách phim mới
   const featuredMovies = latestMovies.data.items.slice(0, 5);
-  const newMovies = latestMovies.data.items.slice(5, 17);
+  const newMovies = latestMovies.data.items.slice(0, 12);
 
   const imageDomain = singleMovies.data.APP_DOMAIN_CDN_IMAGE;
 
