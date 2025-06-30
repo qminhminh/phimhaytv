@@ -252,11 +252,6 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const handleVideoAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (useIframe || !videoRef.current) return;
 
-    if (isMobile) {
-        setShowControls(prev => !prev);
-        return;
-    }
-
     if (tapTimeoutRef.current) {
         clearTimeout(tapTimeoutRef.current);
         tapTimeoutRef.current = null;
@@ -469,23 +464,6 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
               <Play className="w-16 h-16 text-[#FFD700]" fill="currentColor" />
             </div>
           </div>
-        )}
-
-        {isMobile && showControls && !useIframe && (
-            <div 
-                className="absolute inset-0 flex items-center justify-around z-10 bg-black/20"
-                onClick={(e) => e.stopPropagation()} 
-            >
-                <button onClick={handleRewind10s} className="p-4 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all">
-                    <RotateCcw size={32} />
-                </button>
-                <button onClick={togglePlay} className="p-6 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all">
-                    {isPlaying ? <Pause size={48} /> : <Play size={48} />}
-                </button>
-                <button onClick={handleForward10s} className="p-4 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all">
-                    <RotateCw size={32} />
-                </button>
-            </div>
         )}
 
         {/* Custom Controls */}
