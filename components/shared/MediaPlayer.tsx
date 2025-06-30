@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, ArrowRightFromLine } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, SkipForward, StepBack, StepForward, FastForward } from 'lucide-react';
 import Hls from 'hls.js';
 import {
     AlertDialog,
@@ -25,9 +25,10 @@ interface MediaPlayerProps {
   episodeSlug?: string;
   movieSlug?: string;
   nextEpisodeSlug?: string;
+  previousEpisodeSlug?: string;
 }
 
-export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl, movieId, episodeSlug, movieSlug, nextEpisodeSlug }: MediaPlayerProps) {
+export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl, movieId, episodeSlug, movieSlug, nextEpisodeSlug, previousEpisodeSlug }: MediaPlayerProps) {
   const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -226,6 +227,8 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             videoRef.current.currentTime -= 10;
         } else if (clickX > oneThirdWidth * 2) {
             videoRef.current.currentTime += 10;
+        } else {
+            togglePlay();
         }
     } else {
         tapTimeoutRef.current = setTimeout(() => {
@@ -271,7 +274,13 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     }
   };
 
-  const handleSkipIntro = () => {
+  const playPreviousEpisode = () => {
+    if (movieSlug && previousEpisodeSlug) {
+        router.push(`/watch/${movieSlug}/${previousEpisodeSlug}`);
+    }
+  };
+
+  const handleSkipForward80s = () => {
     if (videoRef.current) {
         videoRef.current.currentTime += 80;
     }
@@ -414,12 +423,16 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
               max={duration}
               value={currentTime}
               onChange={handleSeek}
-              className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer range-sm accent-red-500"
+              className="w-full custom-progress"
+              style={{ '--progress-percent': `${duration > 0 ? (currentTime / duration) * 100 : 0}%` } as React.CSSProperties}
             />
             <div className="flex items-center justify-between text-white mt-2">
               <div className="flex items-center space-x-4">
                 <button onClick={togglePlay} className="focus:outline-none">
                   {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+                </button>
+                <button onClick={handleSkipForward80s} className="focus:outline-none p-2 rounded-full hover:bg-white/10" title="Bỏ qua 80 giây">
+                    <FastForward size={20} />
                 </button>
                 <button onClick={toggleMute} className="focus:outline-none">
                   {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
@@ -431,17 +444,20 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
                   step="0.1"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer range-sm accent-red-500"
+                  className="w-24 custom-progress"
+                  style={{ '--progress-percent': `${isMuted ? 0 : volume * 100}%` } as React.CSSProperties}
                 />
                 <span className="text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
               </div>
               <div className="flex items-center space-x-4">
-                <button onClick={handleSkipIntro} className="focus:outline-none" title="Tua 80 giây">
-                  <SkipForward size={24} />
-                </button>
+                {previousEpisodeSlug && (
+                    <button onClick={playPreviousEpisode} className="focus:outline-none p-2 rounded-full hover:bg-white/10" title="Tập trước">
+                        <StepBack size={20} />
+                    </button>
+                )}
                 {nextEpisodeSlug && (
                     <button onClick={playNextEpisode} className="focus:outline-none p-2 rounded-full hover:bg-white/10" title="Tập tiếp theo">
-                        <ArrowRightFromLine size={20} />
+                        <StepForward size={20} />
                     </button>
                 )}
                 <button onClick={toggleFullscreen} className="focus:outline-none">

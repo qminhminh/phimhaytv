@@ -140,6 +140,9 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
     const nextEpisodeSlug = serverGroup && currentEpisodeIndex !== -1 && currentEpisodeIndex < serverGroup.server_data.length - 1
         ? serverGroup.server_data[currentEpisodeIndex + 1].slug
         : null;
+    const previousEpisodeSlug = serverGroup && currentEpisodeIndex > 0
+        ? serverGroup.server_data[currentEpisodeIndex - 1].slug
+        : null;
 
     // Quyết định nguồn phát
     const hasM3U8 = !!m3u8Url;
@@ -165,6 +168,7 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
                             episodeSlug={currentEpisode.slug}
                             movieSlug={movie.slug}
                             nextEpisodeSlug={nextEpisodeSlug || undefined}
+                            previousEpisodeSlug={previousEpisodeSlug || undefined}
                             m3u8Url={hasM3U8 ? m3u8Url : undefined}
                             embedUrl={!hasM3U8 && hasValidEmbed ? embedUrl : undefined}
                             title={`${movie.name} - ${currentEpisode.name}`}
