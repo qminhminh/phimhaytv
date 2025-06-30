@@ -487,8 +487,14 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             />
             <div className="flex items-center justify-between text-white mt-2">
               <div className="flex items-center space-x-1 sm:space-x-4">
+                <button onClick={handleRewind10s} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Tua lại 10 giây">
+                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
                 <button onClick={togglePlay} className="focus:outline-none">
                   {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
+                </button>
+                <button onClick={handleForward10s} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Tua tới 10 giây">
+                    <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button onClick={handleSkipForward80s} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Bỏ qua 80 giây">
                     <FastForward className="w-4 h-4 sm:w-5 sm:h-5" />
