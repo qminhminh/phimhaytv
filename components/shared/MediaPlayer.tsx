@@ -51,7 +51,6 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const lastSaveTimestampRef = useRef(0);
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastTouchEnd = useRef(0);
 
   const progressKey = `movie-progress-${movieId}-${episodeSlug}`;
 
@@ -251,7 +250,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
   
   const handleVideoAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isMobile || useIframe || !videoRef.current) return;
+    if (useIframe || !videoRef.current) return;
 
     if (tapTimeoutRef.current) {
         clearTimeout(tapTimeoutRef.current);
@@ -276,39 +275,6 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         }, 300);
     }
   };
-
-  const handleVideoAreaTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!isMobile || useIframe || !videoRef.current) return;
-
-    const touchTime = new Date().getTime();
-    if (touchTime - lastTouchEnd.current < 300) {
-        e.preventDefault();
-        if (tapTimeoutRef.current) {
-            clearTimeout(tapTimeoutRef.current);
-            tapTimeoutRef.current = null;
-        }
-
-        const touch = e.changedTouches[0];
-        const rect = e.currentTarget.getBoundingClientRect();
-        const touchX = touch.clientX - rect.left;
-        const oneThirdWidth = rect.width / 3;
-
-        if (touchX < oneThirdWidth) {
-            handleRewind10s();
-        } else if (touchX > oneThirdWidth * 2) {
-            handleForward10s();
-        } else {
-            togglePlay();
-        }
-        lastTouchEnd.current = 0; // Prevent triple-tap issues
-    } else {
-        tapTimeoutRef.current = setTimeout(() => {
-            setShowControls(prev => !prev);
-            tapTimeoutRef.current = null;
-        }, 300);
-    }
-    lastTouchEnd.current = touchTime;
-  }
 
   const handleMouseMove = () => {
     setShowControls(true);
@@ -456,7 +422,6 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       <div 
         className={`relative ${isFullscreen ? 'w-full h-full' : 'aspect-[4/3] sm:aspect-video'}`}
         onClick={handleVideoAreaClick}
-        onTouchEnd={handleVideoAreaTouchEnd}
       >
         {useIframe ? (
           <iframe
