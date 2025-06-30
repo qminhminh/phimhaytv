@@ -106,7 +106,11 @@ async function getEpisodeUrlsForMovies(movies) {
             const episodes = data.episodes || (data.item ? data.item.episodes : []);
             if (!detail || !episodes) return [];
 
-            const lastMod = detail.modified?.time ? new Date(detail.modified.time).toISOString() : new Date().toISOString();
+            let lastModDate = detail.modified?.time ? new Date(detail.modified.time) : new Date();
+            if (lastModDate > new Date()) {
+              lastModDate = new Date(); // If date is in the future, use now.
+            }
+            const lastMod = lastModDate.toISOString();
             const episodeUrls = [];
 
             episodes.forEach(server => {
@@ -174,7 +178,11 @@ async function generateFullSitemap() {
 
   // 2. Generate sitemap for movies
   const movieUrls = uniqueMovies.map(movie => {
-    const lastMod = movie.modified?.time ? new Date(movie.modified.time).toISOString() : new Date().toISOString();
+    let lastModDate = movie.modified?.time ? new Date(movie.modified.time) : new Date();
+    if (lastModDate > new Date()) {
+      lastModDate = new Date(); // If date is in the future, use now.
+    }
+    const lastMod = lastModDate.toISOString();
     return `
   <url>
     <loc>${SITE_URL}/movies/${movie.slug}</loc>
@@ -229,7 +237,11 @@ async function generateRecentSitemap() {
 
   // 2. Generate URLs for recent movies
   const movieUrls = recentMovies.map(movie => {
-    const lastMod = movie.modified?.time ? new Date(movie.modified.time).toISOString() : new Date().toISOString();
+    let lastModDate = movie.modified?.time ? new Date(movie.modified.time) : new Date();
+    if (lastModDate > new Date()) {
+      lastModDate = new Date(); // If date is in the future, use now.
+    }
+    const lastMod = lastModDate.toISOString();
     return `
   <url>
     <loc>${SITE_URL}/movies/${movie.slug}</loc>
