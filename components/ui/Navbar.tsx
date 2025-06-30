@@ -175,21 +175,6 @@ export default function Navbar() {
                 {item.title}
               </Link>
             ))}
-            
-            {mainNavItems.map((item) => (
-              <Link 
-                key={item.href}
-                href={item.href} 
-                className={`block py-2 transition-colors ${
-                  isActive(item.href) 
-                    ? 'text-[#FFD700]' 
-                    : 'text-gray-400 hover:text-[#FFD700]'
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {item.title}
-              </Link>
-            ))}
           </div>
         )}
       </div>

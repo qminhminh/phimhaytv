@@ -415,7 +415,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           {/* Top controls could go here if needed */}
           <div></div>
           {/* Bottom controls */}
-          <div className="p-4 bg-gradient-to-t from-black/70 to-transparent">
+          <div className="p-2 sm:p-4 bg-gradient-to-t from-black/70 to-transparent">
             {/* Progress Bar */}
             <input
               type="range"
@@ -427,15 +427,15 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
               style={{ '--progress-percent': `${duration > 0 ? (currentTime / duration) * 100 : 0}%` } as React.CSSProperties}
             />
             <div className="flex items-center justify-between text-white mt-2">
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1 sm:space-x-4">
                 <button onClick={togglePlay} className="focus:outline-none">
-                  {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+                  {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
                 </button>
-                <button onClick={handleSkipForward80s} className="focus:outline-none p-2 rounded-full hover:bg-white/10" title="Bỏ qua 80 giây">
-                    <FastForward size={20} />
+                <button onClick={handleSkipForward80s} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Bỏ qua 80 giây">
+                    <FastForward className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button onClick={toggleMute} className="focus:outline-none">
-                  {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+                  {isMuted ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
                 </button>
                 <input
                   type="range"
@@ -444,24 +444,24 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
                   step="0.1"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-24 custom-progress"
+                  className="w-24 custom-progress hidden sm:block"
                   style={{ '--progress-percent': `${isMuted ? 0 : volume * 100}%` } as React.CSSProperties}
                 />
-                <span className="text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
+                <span className="text-xs sm:text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1 sm:space-x-4">
                 {previousEpisodeSlug && (
-                    <button onClick={playPreviousEpisode} className="focus:outline-none p-2 rounded-full hover:bg-white/10" title="Tập trước">
-                        <StepBack size={20} />
+                    <button onClick={playPreviousEpisode} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Tập trước">
+                        <StepBack className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 )}
                 {nextEpisodeSlug && (
-                    <button onClick={playNextEpisode} className="focus:outline-none p-2 rounded-full hover:bg-white/10" title="Tập tiếp theo">
-                        <StepForward size={20} />
+                    <button onClick={playNextEpisode} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Tập tiếp theo">
+                        <StepForward className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 )}
                 <button onClick={toggleFullscreen} className="focus:outline-none">
-                  <Maximize size={24} />
+                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
