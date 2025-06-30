@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Volume2, VolumeX, Maximize, SkipForward, StepBack, StepForward, FastForward } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, SkipForward, StepBack, StepForward, FastForward, RotateCcw, RotateCw, Settings, PictureInPicture2 } from 'lucide-react';
 import Hls from 'hls.js';
 import {
     AlertDialog,
@@ -39,6 +39,11 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const [resumeTime, setResumeTime] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [isPiPSupported, setIsPiPSupported] = useState(false);
+  const [isInPiP, setIsInPiP] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -108,6 +113,30 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         isMounted = false;
     };
   }, [progressKey, useIframe, movieId, episodeSlug]);
+
+  useEffect(() => {
+    setIsPiPSupported('pictureInPictureEnabled' in document && document.pictureInPictureEnabled);
+    const checkIsMobile = () => setIsMobile(window.innerWidth < 768);
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+  
+  useEffect(() => {
+    if (!isPiPSupported || useIframe || !videoRef.current) return;
+    const video = videoRef.current;
+
+    const onEnterPiP = () => setIsInPiP(true);
+    const onLeavePiP = () => setIsInPiP(false);
+
+    video.addEventListener('enterpictureinpicture', onEnterPiP);
+    video.addEventListener('leavepictureinpicture', onLeavePiP);
+
+    return () => {
+      video.removeEventListener('enterpictureinpicture', onEnterPiP);
+      video.removeEventListener('leavepictureinpicture', onLeavePiP);
+    };
+  }, [isPiPSupported, useIframe]);
 
   const togglePlay = useCallback(() => {
     if (videoRef.current && !useIframe) {
@@ -211,8 +240,21 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       setShowResumeDialog(false);
   };
 
+  const handleRewind10s = () => {
+    if (videoRef.current) videoRef.current.currentTime -= 10;
+  }
+
+  const handleForward10s = () => {
+    if (videoRef.current) videoRef.current.currentTime += 10;
+  }
+
   const handleVideoAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (useIframe || !videoRef.current) return;
+
+    if (isMobile) {
+        setShowControls(prev => !prev);
+        return;
+    }
 
     if (tapTimeoutRef.current) {
         clearTimeout(tapTimeoutRef.current);
@@ -224,9 +266,9 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         const oneThirdWidth = rect.width / 3;
 
         if (clickX < oneThirdWidth) {
-            videoRef.current.currentTime -= 10;
+            handleRewind10s();
         } else if (clickX > oneThirdWidth * 2) {
-            videoRef.current.currentTime += 10;
+            handleForward10s();
         } else {
             togglePlay();
         }
@@ -283,6 +325,27 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const handleSkipForward80s = () => {
     if (videoRef.current) {
         videoRef.current.currentTime += 80;
+    }
+  };
+
+  const handlePlaybackRateChange = (rate: number) => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+      setPlaybackRate(rate);
+      setShowSettingsMenu(false);
+    }
+  };
+
+  const togglePictureInPicture = async () => {
+    if (useIframe || !videoRef.current || !isPiPSupported) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (error) {
+      console.error("Failed to toggle Picture-in-Picture mode:", error);
     }
   };
 
@@ -407,6 +470,23 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           </div>
         )}
 
+        {isMobile && showControls && !useIframe && (
+            <div 
+                className="absolute inset-0 flex items-center justify-around z-10 bg-black/20"
+                onClick={(e) => e.stopPropagation()} 
+            >
+                <button onClick={handleRewind10s} className="p-4 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all">
+                    <RotateCcw size={32} />
+                </button>
+                <button onClick={togglePlay} className="p-6 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all">
+                    {isPlaying ? <Pause size={48} /> : <Play size={48} />}
+                </button>
+                <button onClick={handleForward10s} className="p-4 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all">
+                    <RotateCw size={32} />
+                </button>
+            </div>
+        )}
+
         {/* Custom Controls */}
         <div 
           className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
@@ -460,6 +540,40 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
                         <StepForward className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 )}
+                
+                {/* Picture-in-Picture Button */}
+                {!useIframe && isPiPSupported && (
+                  <button onClick={togglePictureInPicture} className={`focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10 ${isInPiP ? 'text-primary' : ''}`} title="Hình trong hình">
+                    <PictureInPicture2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                )}
+
+                {/* Settings Button */}
+                {!useIframe && (
+                    <div className="relative">
+                        <button onClick={() => setShowSettingsMenu(prev => !prev)} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Cài đặt">
+                            <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        {showSettingsMenu && (
+                             <div 
+                                className="absolute bottom-full right-0 mb-2 bg-black/80 rounded-lg p-2 flex flex-col items-start w-32"
+                                onMouseLeave={() => setShowSettingsMenu(false)}
+                            >
+                                <span className="text-xs text-gray-400 px-2 pb-1 w-full text-center">Tốc độ</span>
+                                {[0.5, 1, 1.5, 2].map((rate) => (
+                                    <button
+                                        key={rate}
+                                        onClick={() => handlePlaybackRateChange(rate)}
+                                        className={`w-full text-left px-2 py-1 rounded text-sm whitespace-nowrap ${playbackRate === rate ? 'bg-primary text-white font-bold' : 'hover:bg-white/20'}`}
+                                    >
+                                        {rate === 1 ? 'Bình thường' : `${rate}x`}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <button onClick={toggleFullscreen} className="focus:outline-none">
                   <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
