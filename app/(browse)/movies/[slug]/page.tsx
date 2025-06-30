@@ -7,6 +7,8 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SimilarMovies } from '@/components/shared/SimilarMovies';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CopyLinkButton } from '@/components/shared/CopyLinkButton';
 
 type MovieDetailPageProps = {
     params: {
@@ -120,6 +122,7 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                             <div className="flex items-center gap-2"><Tv size={16} className="text-primary"/> <strong>Tình trạng:</strong> {movie.episode_current}</div>
                             <div className="flex items-center gap-2"><Star size={16} className="text-primary"/> <strong>Chất lượng:</strong> {movie.quality} - {movie.lang}</div>
                             <div className="col-span-full"><strong>Quốc gia:</strong> {movie.country.map((c) => c.name).join(', ')}</div>
+                            <div className="col-span-full"><strong>Thể loại:</strong> {movie.category.map((c) => c.name).join(', ')}</div>
                             <div className="col-span-full"><strong>Đạo diễn:</strong> {movie.director.join(', ')}</div>
                             <div className="col-span-full"><strong>Diễn viên:</strong> {movie.actor.join(', ')}</div>
                         </div>
@@ -129,22 +132,59 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                 {/* Episodes Section */}
                 <div className="mt-12">
                     <h3 className="text-3xl font-bold mb-6 border-l-4 border-primary pl-4 text-primary">Danh Sách Tập</h3>
-                    {episodes.map((episode) => (
-                        <div key={episode.server_name} className="mb-8">
-                            <h4 className="text-xl font-semibold mb-4 p-3 bg-gray-800/50 rounded-t-lg">{formatServerName(episode.server_name)}</h4>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 p-4 bg-background/50 backdrop-blur-sm rounded-b-lg">
-                                {episode.server_data.map((data) => (
-                                    <Link 
-                                        key={`${episode.server_name}-${data.slug}`}
-                                        href={`/watch/${movie.slug}/${data.slug}?server=${encodeURIComponent(episode.server_name)}`}
-                                        className="text-center bg-gray-700 hover:bg-primary text-white font-medium py-2 px-3 rounded-md transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg"
-                                    >
-                                        {data.name}
-                                    </Link>
+                    {episodes && episodes.length > 0 ? (
+                        <Tabs defaultValue="watch" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 max-w-sm bg-gray-800/50 rounded-lg p-1">
+                                <TabsTrigger value="watch" className="data-[state=active]:bg-gradient-to-r from-amber-500 to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md">Xem Phim</TabsTrigger>
+                                <TabsTrigger value="download" className="data-[state=active]:bg-gradient-to-r from-amber-500 to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md">Tải Phim</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="watch">
+                                {episodes.map((episode) => (
+                                    <div key={episode.server_name} className="mb-8 mt-4">
+                                        <h4 className="text-xl font-semibold mb-4 p-3 bg-gray-800/50 rounded-t-lg">{formatServerName(episode.server_name)}</h4>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 p-4 bg-background/50 backdrop-blur-sm rounded-b-lg">
+                                            {episode.server_data.map((data) => (
+                                                <Link
+                                                    key={`${episode.server_name}-${data.slug}`}
+                                                    href={`/watch/${movie.slug}/${data.slug}?server=${encodeURIComponent(episode.server_name)}`}
+                                                    className="text-center bg-gray-700 hover:bg-primary text-white font-medium py-2 px-3 rounded-md transition-all duration-200 transform hover:-translate-y-1 hover:shadow-lg"
+                                                >
+                                                    {data.name}
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
-                            </div>
-                        </div>
-                    ))}
+                            </TabsContent>
+                            <TabsContent value="download">
+                                <div className="mt-4 mb-6 p-4 bg-blue-900/30 border border-blue-700 rounded-lg text-sm text-blue-200 space-y-2">
+                                    <p><strong>Lưu ý:</strong> Đây là các liên kết tệp `.m3u8`, không phải tệp video trực tiếp. Bạn cần dùng các phần mềm chuyên dụng như VLC Media Player hoặc công cụ trực tuyến để tải video từ những tệp này.</p>
+                                    <p>
+                                        Đây là trang công cụ download m3u8 trực tuyến, hãy copy link tập muốn tải và bỏ vào: {' '}
+                                        <a href="https://m3u8.dev/" target="_blank" rel="noopener noreferrer" className="font-semibold text-amber-400 hover:text-amber-300 underline">
+                                            https://m3u8.dev/
+                                        </a>
+                                    </p>
+                                </div>
+                                {episodes.map((episode) => (
+                                     <div key={`${episode.server_name}-download`} className="mb-8">
+                                         <h4 className="text-xl font-semibold mb-4 p-3 bg-gray-800/50 rounded-t-lg">{formatServerName(episode.server_name)}</h4>
+                                         <div className="flex flex-col gap-3 p-4 bg-background/50 backdrop-blur-sm rounded-b-lg">
+                                             {episode.server_data.map((data) => (
+                                                  <CopyLinkButton
+                                                     key={`${episode.server_name}-${data.slug}-download`}
+                                                     episodeName={data.name}
+                                                     m3u8Link={data.link_m3u8}
+                                                 />
+                                             ))}
+                                         </div>
+                                     </div>
+                                ))}
+                            </TabsContent>
+                        </Tabs>
+                    ) : (
+                        <p className="text-gray-400 mt-4">Chưa có tập phim nào được cập nhật.</p>
+                    )}
                 </div>
 
                 {/* Similar Movies Section */}
