@@ -248,6 +248,15 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     if (videoRef.current) videoRef.current.currentTime += 10;
   }
 
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isMobile) {
+      // We handle taps on mobile with touch events for better reliability, especially in fullscreen.
+      // preventDefault stops the browser from firing a 'click' event, which would cause a double-toggle.
+      e.preventDefault();
+      setShowControls(prev => !prev);
+    }
+  }
+
   const handleVideoAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (useIframe || !videoRef.current) return;
 
@@ -426,6 +435,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       <div 
         className={`relative ${isFullscreen ? 'w-full h-full' : 'aspect-[4/3] sm:aspect-video'}`}
         onClick={handleVideoAreaClick}
+        onTouchEnd={handleTouchEnd}
       >
         {useIframe ? (
           <iframe

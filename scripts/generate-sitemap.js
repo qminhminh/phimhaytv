@@ -64,11 +64,20 @@ function updateSitemapIndex(sitemapFiles) {
     existingSitemaps.add(`${SITE_URL}/${filename}`);
   });
 
-  const sitemapIndexEntries = Array.from(existingSitemaps).map(loc => `
+  const sitemapIndexEntries = Array.from(existingSitemaps).map(loc => {
+    const filename = loc.replace(`${SITE_URL}/`, '');
+    const filePath = path.join(PUBLIC_DIR, filename);
+    let lastMod = new Date(); // Default to now
+    if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        lastMod = stats.mtime;
+    }
+    return `
   <sitemap>
     <loc>${loc}</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
-  </sitemap>`).join('');
+    <lastmod>${lastMod.toISOString()}</lastmod>
+  </sitemap>`;
+  }).join('');
 
   const sitemapIndexContent = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
