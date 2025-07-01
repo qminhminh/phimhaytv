@@ -29,6 +29,26 @@ async function fetcher(path, params = {}) {
   }
 }
 
+function getValidLastMod(movie) {
+  const now = new Date();
+  // The movie object from the list endpoint might not have `modified` field.
+  // The movie object from the detail endpoint has `movie.modified.time`.
+  const modifiedTime = movie?.modified?.time;
+
+  if (!modifiedTime) {
+    return now.toISOString();
+  }
+  
+  const modifiedDate = new Date(modifiedTime);
+  
+  // Check if the date is invalid or in the future
+  if (isNaN(modifiedDate.getTime()) || modifiedDate > now) {
+    return now.toISOString();
+  }
+  
+  return modifiedDate.toISOString();
+}
+
 function writeSitemapFile(fileName, urls) {
   if (urls.length === 0) return;
   
@@ -106,11 +126,7 @@ async function getEpisodeUrlsForMovies(movies) {
             const episodes = data.episodes || (data.item ? data.item.episodes : []);
             if (!detail || !episodes) return [];
 
-            let lastModDate = detail.modified?.time ? new Date(detail.modified.time) : new Date();
-            if (lastModDate > new Date()) {
-              lastModDate = new Date(); // If date is in the future, use now.
-            }
-            const lastMod = lastModDate.toISOString();
+            const lastMod = getValidLastMod(detail);
             const episodeUrls = [];
 
             episodes.forEach(server => {
@@ -178,11 +194,7 @@ async function generateFullSitemap() {
 
   // 2. Generate sitemap for movies
   const movieUrls = uniqueMovies.map(movie => {
-    let lastModDate = movie.modified?.time ? new Date(movie.modified.time) : new Date();
-    if (lastModDate > new Date()) {
-      lastModDate = new Date(); // If date is in the future, use now.
-    }
-    const lastMod = lastModDate.toISOString();
+    const lastMod = getValidLastMod(movie);
     return `
   <url>
     <loc>${SITE_URL}/movies/${movie.slug}</loc>
@@ -237,11 +249,7 @@ async function generateRecentSitemap() {
 
   // 2. Generate URLs for recent movies
   const movieUrls = recentMovies.map(movie => {
-    let lastModDate = movie.modified?.time ? new Date(movie.modified.time) : new Date();
-    if (lastModDate > new Date()) {
-      lastModDate = new Date(); // If date is in the future, use now.
-    }
-    const lastMod = lastModDate.toISOString();
+    const lastMod = getValidLastMod(movie);
     return `
   <url>
     <loc>${SITE_URL}/movies/${movie.slug}</loc>
