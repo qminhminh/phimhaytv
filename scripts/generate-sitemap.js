@@ -5,6 +5,7 @@ const BASE_URL = 'https://phimapi.com';
 const SITE_URL = 'https://phimhaytv.top'; // Thay đổi thành domain của bạn
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const SITEMAP_MAX_URLS = 5000;
+const DAILY_UPDATE_LIMIT = 25; // Lấy tối đa 25 phim để đảm bảo có đủ 20 phim mới
 
 // --- Helper Functions ---
 
@@ -64,37 +65,33 @@ ${urls.join('')}
 
 function updateSitemapIndex(sitemapFiles) {
   const sitemapIndexPath = path.join(PUBLIC_DIR, 'sitemap.xml');
-  const existingSitemaps = new Set();
-
-  // Read existing sitemaps if the index file exists
-  if (fs.existsSync(sitemapIndexPath)) {
-    const sitemapIndexContent = fs.readFileSync(sitemapIndexPath, 'utf-8');
-    const locRegex = /<loc>(.*?)<\/loc>/g;
-    let match;
-    while ((match = locRegex.exec(sitemapIndexContent)) !== null) {
-      // Keep only non-recent sitemaps from the old index
-      if (!match[1].includes('sitemap-recent')) {
-        existingSitemaps.add(match[1]);
-      }
-    }
+  
+  // Nếu sitemapFiles được truyền vào, chỉ sử dụng những files đó
+  // Ngược lại, tự động tìm tất cả sitemap files hiện có
+  let allSitemapFiles;
+  if (sitemapFiles && sitemapFiles.length > 0) {
+    allSitemapFiles = sitemapFiles;
+  } else {
+    // Tự động tìm tất cả sitemap files hiện có (trừ sitemap.xml chính)
+    allSitemapFiles = fs.readdirSync(PUBLIC_DIR)
+      .filter(file => file.startsWith('sitemap-') && file.endsWith('.xml'))
+      .sort();
   }
 
-  // Add the new sitemap files (could be full or recent)
-  sitemapFiles.forEach(filename => {
-    existingSitemaps.add(`${SITE_URL}/${filename}`);
+  // Lọc ra chỉ những files thực sự tồn tại
+  const existingFiles = allSitemapFiles.filter(filename => {
+    const filePath = path.join(PUBLIC_DIR, filename);
+    return fs.existsSync(filePath);
   });
 
-  const sitemapIndexEntries = Array.from(existingSitemaps).map(loc => {
-    const filename = loc.replace(`${SITE_URL}/`, '');
+  const sitemapIndexEntries = existingFiles.map(filename => {
     const filePath = path.join(PUBLIC_DIR, filename);
-    let lastMod = new Date(); // Default to now
-    if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        lastMod = stats.mtime;
-    }
+    const stats = fs.statSync(filePath);
+    const lastMod = stats.mtime;
+    
     return `
   <sitemap>
-    <loc>${loc}</loc>
+    <loc>${SITE_URL}/${filename}</loc>
     <lastmod>${lastMod.toISOString()}</lastmod>
   </sitemap>`;
   }).join('');
@@ -105,7 +102,7 @@ ${sitemapIndexEntries}
 </sitemapindex>`;
 
   fs.writeFileSync(sitemapIndexPath, sitemapIndexContent);
-  console.log('Generated sitemap.xml (index file).');
+  console.log(`Generated sitemap.xml (index file) with ${existingFiles.length} sitemaps.`);
 }
 
 async function getEpisodeUrlsForMovies(movies) {
@@ -150,6 +147,68 @@ async function getEpisodeUrlsForMovies(movies) {
     return Array.from(new Set(allEpisodeUrls)); // Deduplicate
 }
 
+/**
+ * Đọc và parse các URLs hiện có từ sitemap để tránh trùng lặp
+ */
+function getExistingUrls(sitemapFileName) {
+  const sitemapPath = path.join(PUBLIC_DIR, sitemapFileName);
+  if (!fs.existsSync(sitemapPath)) {
+    return new Set();
+  }
+  
+  const content = fs.readFileSync(sitemapPath, 'utf-8');
+  const urlRegex = /<loc>(.*?)<\/loc>/g;
+  const urls = new Set();
+  let match;
+  
+  while ((match = urlRegex.exec(content)) !== null) {
+    urls.add(match[1]);
+  }
+  
+  return urls;
+}
+
+/**
+ * Cập nhật sitemap hiện có bằng cách thêm URLs mới và xóa URLs cũ
+ */
+function updateExistingSitemap(fileName, newUrls, urlsToRemove = new Set()) {
+  const sitemapPath = path.join(PUBLIC_DIR, fileName);
+  let existingUrls = [];
+  
+  // Đọc URLs hiện có
+  if (fs.existsSync(sitemapPath)) {
+    const content = fs.readFileSync(sitemapPath, 'utf-8');
+    const urlRegex = /<url>[\s\S]*?<\/url>/g;
+    let match;
+    
+    while ((match = urlRegex.exec(content)) !== null) {
+      const urlContent = match[0];
+      const locMatch = urlContent.match(/<loc>(.*?)<\/loc>/);
+      if (locMatch && !urlsToRemove.has(locMatch[1])) {
+        existingUrls.push(urlContent);
+      }
+    }
+  }
+  
+  // Kết hợp URLs cũ và mới
+  const allUrls = [...existingUrls, ...newUrls];
+  
+  // Kiểm tra nếu số URLs vượt quá giới hạn, tạo file mới
+  if (allUrls.length > SITEMAP_MAX_URLS) {
+    // Tìm số file sitemap hiện có cùng loại
+    const files = fs.readdirSync(PUBLIC_DIR);
+    const pattern = fileName.replace(/(-\d+)?\.xml$/, '');
+    const existingFiles = files.filter(f => f.startsWith(pattern) && f.endsWith('.xml'));
+    const nextNumber = existingFiles.length + 1;
+    const newFileName = `${pattern}-${nextNumber}.xml`;
+    
+    writeSitemapFile(newFileName, newUrls);
+    return [newFileName];
+  } else {
+    writeSitemapFile(fileName, allUrls);
+    return [fileName];
+  }
+}
 
 // --- Sitemap Generation Modes ---
 
@@ -224,22 +283,37 @@ async function generateFullSitemap() {
   updateSitemapIndex(sitemapFiles);
 }
 
-
 /**
- * RECENT UPDATE MODE
- * Fetches only the most recent movies and creates dedicated sitemaps for them.
- * This is fast and intended to be run on every build.
+ * RECENT UPDATE MODE - Cải tiến
+ * Lấy đúng số lượng phim mới (khoảng 20), tránh trùng lặp với sitemap hiện có
  */
 async function generateRecentSitemap() {
   console.log('Starting recent sitemap update...');
   
-  // 1. Fetch recent movies (first page)
-  const response = await fetcher('/danh-sach/phim-moi-cap-nhat-v3', { page: 1, limit: 100 });
-  if (!response?.status) {
-    console.error('Could not fetch recent movies. Aborting.');
-    return;
+  let recentMovies = [];
+  let page = 1;
+  
+  // Lấy phim mới cho đến khi có đủ DAILY_UPDATE_LIMIT
+  while (recentMovies.length < DAILY_UPDATE_LIMIT) {
+    const response = await fetcher('/danh-sach/phim-moi-cap-nhat-v3', { 
+      page, 
+      limit: Math.min(50, DAILY_UPDATE_LIMIT - recentMovies.length + 10) // Lấy thêm 10 để đảm bảo
+    });
+    
+    if (!response?.status || !response.items || response.items.length === 0) {
+      console.log(`Không thể lấy thêm phim từ trang ${page}`);
+      break;
+    }
+    
+    recentMovies.push(...response.items);
+    page++;
+    
+    // Tránh vòng lặp vô hạn
+    if (page > 5) break;
   }
-  const recentMovies = response.items;
+  
+  // Giới hạn số lượng phim lấy về
+  recentMovies = recentMovies.slice(0, DAILY_UPDATE_LIMIT);
   console.log(`Fetched ${recentMovies.length} recent movies.`);
   
   if (recentMovies.length === 0) {
@@ -247,36 +321,84 @@ async function generateRecentSitemap() {
     return;
   }
 
-  // 2. Generate URLs for recent movies
-  const movieUrls = recentMovies.map(movie => {
+  // Lấy danh sách URLs phim đã tồn tại
+  const existingMovieUrls = getExistingUrls('sitemap-movies-1.xml');
+  const existingEpisodeUrls = getExistingUrls('sitemap-episodes-1.xml');
+  
+  // Tạo URLs cho phim mới (chỉ những phim chưa có trong sitemap)
+  const newMovieUrls = [];
+  const updatedMovieUrls = new Set(); // URLs phim cần cập nhật lastmod
+  
+  recentMovies.forEach(movie => {
+    const movieUrl = `${SITE_URL}/movies/${movie.slug}`;
     const lastMod = getValidLastMod(movie);
-    return `
+    
+    const urlXml = `
   <url>
-    <loc>${SITE_URL}/movies/${movie.slug}</loc>
+    <loc>${movieUrl}</loc>
     <lastmod>${lastMod}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>`;
+    
+    if (!existingMovieUrls.has(movieUrl)) {
+      newMovieUrls.push(urlXml);
+    } else {
+      // Phim đã tồn tại, đánh dấu cần cập nhật lastmod
+      updatedMovieUrls.add(movieUrl);
+    }
   });
 
-  // 3. Generate URLs for recent episodes
-  const episodeUrls = await getEpisodeUrlsForMovies(recentMovies);
-
-  // 4. Write recent sitemap files
-  const recentSitemapFiles = [];
-  if (movieUrls.length > 0) {
-    writeSitemapFile('sitemap-recent-movies.xml', movieUrls);
-    recentSitemapFiles.push('sitemap-recent-movies.xml');
+  // Lấy URLs episodes cho phim mới
+  const newMoviesOnly = recentMovies.filter(movie => 
+    !existingMovieUrls.has(`${SITE_URL}/movies/${movie.slug}`)
+  );
+  
+  let newEpisodeUrls = [];
+  if (newMoviesOnly.length > 0) {
+    const allEpisodeUrls = await getEpisodeUrlsForMovies(newMoviesOnly);
+    // Chỉ lấy episodes chưa tồn tại
+    newEpisodeUrls = allEpisodeUrls.filter(episodeXml => {
+      const locMatch = episodeXml.match(/<loc>(.*?)<\/loc>/);
+      return locMatch && !existingEpisodeUrls.has(locMatch[1]);
+    });
   }
-  if (episodeUrls.length > 0) {
-    writeSitemapFile('sitemap-recent-episodes.xml', episodeUrls);
-    recentSitemapFiles.push('sitemap-recent-episodes.xml');
+
+  const updatedFiles = [];
+  
+  // Cập nhật sitemap movies
+  if (newMovieUrls.length > 0) {
+    console.log(`Adding ${newMovieUrls.length} new movie URLs to sitemap`);
+    const movieFiles = updateExistingSitemap('sitemap-movies-1.xml', newMovieUrls);
+    updatedFiles.push(...movieFiles);
+  }
+  
+  // Cập nhật sitemap episodes  
+  if (newEpisodeUrls.length > 0) {
+    console.log(`Adding ${newEpisodeUrls.length} new episode URLs to sitemap`);
+    const episodeFiles = updateExistingSitemap('sitemap-episodes-1.xml', newEpisodeUrls);
+    updatedFiles.push(...episodeFiles);
   }
 
-  // 5. Update the main sitemap index
-  updateSitemapIndex(recentSitemapFiles);
+  // Xóa các file sitemap-recent cũ nếu có
+  const files = fs.readdirSync(PUBLIC_DIR);
+  files.forEach(file => {
+    if (file.startsWith('sitemap-recent-')) {
+      const filePath = path.join(PUBLIC_DIR, file);
+      fs.unlinkSync(filePath);
+      console.log(`Deleted old recent sitemap: ${file}`);
+    }
+  });
+
+  // Cập nhật sitemap index với tất cả files hiện có
+  const allSitemapFiles = fs.readdirSync(PUBLIC_DIR)
+    .filter(file => file.startsWith('sitemap-') && file.endsWith('.xml') && file !== 'sitemap.xml')
+    .sort();
+    
+  updateSitemapIndex(allSitemapFiles);
+  
+  console.log(`Updated sitemaps with ${newMovieUrls.length} new movies and ${newEpisodeUrls.length} new episodes`);
 }
-
 
 // --- Main Execution ---
 

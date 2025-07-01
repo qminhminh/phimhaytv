@@ -44,6 +44,8 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isPiPSupported, setIsPiPSupported] = useState(false);
   const [isInPiP, setIsInPiP] = useState(false);
+  const [m3u8LoadFailed, setM3u8LoadFailed] = useState(false);
+  const [isM3u8Loading, setIsM3u8Loading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -51,35 +53,129 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const lastSaveTimestampRef = useRef(0);
   const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const m3u8TimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const progressKey = `movie-progress-${movieId}-${episodeSlug}`;
 
-  // Nếu có embedUrl, ưu tiên sử dụng iframe
-  const useIframe = !!embedUrl;
+  // Logic quyết định sử dụng iframe hay video player
+  const useIframe = !m3u8Url || m3u8LoadFailed ? !!embedUrl : false;
 
-  useEffect(() => {
-    if (m3u8Url && videoRef.current) {
-        const video = videoRef.current;
-        if (Hls.isSupported()) {
-            const hls = new Hls();
-            hlsRef.current = hls;
-            hls.loadSource(m3u8Url);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                // Autoplay can be handled here if needed
-            });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = m3u8Url;
-        }
-
-        return () => {
-            if (hlsRef.current) {
-                hlsRef.current.destroy();
-                hlsRef.current = null;
-            }
-        };
+  // Function để retry M3U8
+  const retryM3u8 = useCallback(() => {
+    if (m3u8Url) {
+      console.log('Retrying M3U8 load...');
+      setM3u8LoadFailed(false);
+      setIsM3u8Loading(false);
     }
   }, [m3u8Url]);
+
+  // Effect xử lý M3U8 với timeout fallback
+  useEffect(() => {
+    // Reset states khi URL thay đổi
+    setM3u8LoadFailed(false);
+    setIsM3u8Loading(false);
+    
+    if (m3u8TimeoutRef.current) {
+      clearTimeout(m3u8TimeoutRef.current);
+      m3u8TimeoutRef.current = null;
+    }
+
+    if (m3u8Url && videoRef.current && !m3u8LoadFailed) {
+      setIsM3u8Loading(true);
+      const video = videoRef.current;
+      
+      // Timeout 5 giây để fallback sang embed
+      m3u8TimeoutRef.current = setTimeout(() => {
+        console.warn('M3U8 load timeout after 5 seconds, falling back to embed');
+        setM3u8LoadFailed(true);
+        setIsM3u8Loading(false);
+      }, 5000);
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          debug: false,
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 90
+        });
+        
+        hlsRef.current = hls;
+        hls.loadSource(m3u8Url);
+        hls.attachMedia(video);
+        
+        // Success callback - M3U8 loaded successfully
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          console.log('M3U8 manifest parsed successfully');
+          if (m3u8TimeoutRef.current) {
+            clearTimeout(m3u8TimeoutRef.current);
+            m3u8TimeoutRef.current = null;
+          }
+          setIsM3u8Loading(false);
+        });
+
+        // Error callbacks
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error('HLS.js error:', data);
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.error('Fatal network error encountered, trying to fallback to embed');
+                setM3u8LoadFailed(true);
+                setIsM3u8Loading(false);
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.error('Fatal media error encountered, trying to fallback to embed');
+                setM3u8LoadFailed(true);
+                setIsM3u8Loading(false);
+                break;
+              default:
+                console.error('Fatal error, trying to fallback to embed');
+                setM3u8LoadFailed(true);
+                setIsM3u8Loading(false);
+                break;
+            }
+          }
+        });
+
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari native HLS support
+        video.src = m3u8Url;
+        
+        const handleCanPlay = () => {
+          console.log('Native HLS can play');
+          if (m3u8TimeoutRef.current) {
+            clearTimeout(m3u8TimeoutRef.current);
+            m3u8TimeoutRef.current = null;
+          }
+          setIsM3u8Loading(false);
+          video.removeEventListener('canplay', handleCanPlay);
+          video.removeEventListener('error', handleError);
+        };
+
+        const handleError = () => {
+          console.error('Native HLS error, falling back to embed');
+          setM3u8LoadFailed(true);
+          setIsM3u8Loading(false);
+          video.removeEventListener('canplay', handleCanPlay);
+          video.removeEventListener('error', handleError);
+        };
+
+        video.addEventListener('canplay', handleCanPlay);
+        video.addEventListener('error', handleError);
+      }
+
+      return () => {
+        if (m3u8TimeoutRef.current) {
+          clearTimeout(m3u8TimeoutRef.current);
+          m3u8TimeoutRef.current = null;
+        }
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
+      };
+    }
+  }, [m3u8Url, m3u8LoadFailed]);
 
   useEffect(() => {
     if (useIframe || !movieId || !episodeSlug) {
@@ -463,6 +559,27 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             <div className="bg-black/50 rounded-full p-4">
               <Play className="w-16 h-16 text-[#FFD700]" fill="currentColor" />
             </div>
+          </div>
+        )}
+
+        {/* Loading Indicator cho M3U8 */}
+        {isM3u8Loading && (
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-white text-sm">Đang tải video M3U8...</p>
+          </div>
+        )}
+
+        {/* Fallback Notification */}
+        {m3u8LoadFailed && embedUrl && (
+          <div className="absolute top-4 left-4 right-4 bg-yellow-600/90 text-white p-3 rounded-lg text-sm flex items-center justify-between">
+            <span>⚠️ Không thể tải video M3U8, đã chuyển sang nguồn embed</span>
+            <button 
+              onClick={retryM3u8}
+              className="ml-3 px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-medium transition-colors"
+            >
+              Thử lại M3U8
+            </button>
           </div>
         )}
 
