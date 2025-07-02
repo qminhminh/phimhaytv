@@ -129,7 +129,7 @@ export default function Navbar() {
               <Bell size={20} />
             </button> */}
 
-            {/* Profile */}
+            {/* Profile
             <div className="relative group">
               <button className="flex items-center space-x-2 text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
                 <div className="w-8 h-8 bg-[#FFD700] rounded-full flex items-center justify-center">
@@ -138,7 +138,7 @@ export default function Navbar() {
               </button>
               
               {/* Dropdown */}
-              <div className="absolute right-0 mt-2 w-48 bg-[#1A1A1A] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              {/* <div className="absolute right-0 mt-2 w-48 bg-[#1A1A1A] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                 <Link href="/profile" className="block px-4 py-2 text-[#EAEAEA] hover:bg-[#2A2A2A] rounded-t-lg">
                   Profile
                 </Link>
@@ -146,7 +146,7 @@ export default function Navbar() {
                   Logout
                 </Link>
               </div>
-            </div>
+            </div> */} 
 
             {/* Mobile Menu Toggle */}
             <button
