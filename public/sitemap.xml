@@ -2,8 +2,8 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
   <sitemap>
-    <loc>https://phimhaytv.top/sitemap-movies-1.xml</loc>
-    <lastmod>2025-07-21T05:26:47.907Z</lastmod>
+    <loc>https://phimhaytv.top/sitemap-static.xml</loc>
+    <lastmod>2025-07-21T06:51:21.289Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://phimhaytv.top/sitemap-episodes-1.xml</loc>
@@ -32,5 +32,9 @@
   <sitemap>
     <loc>https://phimhaytv.top/sitemap-episodes-7.xml</loc>
     <lastmod>2025-07-21T06:14:25.773Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://phimhaytv.top/sitemap-movies-1.xml</loc>
+    <lastmod>2025-07-21T06:43:52.407Z</lastmod>
   </sitemap>
 </sitemapindex>

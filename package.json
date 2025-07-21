@@ -8,10 +8,14 @@
     "start": "next start",
     "lint": "next lint",
     "generate-sitemap": "node scripts/generate-sitemap.js",
+    "generate-static-sitemap": "node scripts/generate-static-sitemap.js",
     "sitemap:full": "node scripts/generate-sitemap.js --full",
+    "sitemap:static": "node scripts/generate-static-sitemap.js",
+    "sitemap:update": "yarn sitemap:static && yarn generate-sitemap",
+    "sitemap:full-rebuild": "yarn sitemap:static && yarn sitemap:full",
     "sitemap:validate": "node scripts/validate-sitemap.js",
     "sitemap:cleanup": "node scripts/cleanup-sitemap.js",
-    "sitemap:fix": "yarn sitemap:cleanup && yarn sitemap:full && yarn sitemap:validate"
+    "sitemap:fix": "yarn sitemap:cleanup && yarn sitemap:full-rebuild && yarn sitemap:validate"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

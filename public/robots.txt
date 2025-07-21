@@ -4,19 +4,32 @@ Allow: /
 # Sitemap location
 Sitemap: https://phimhaytv.top/sitemap.xml
 
-# Allow crawling of key pages
-Allow: /movies/
-Allow: /watch/
+# High priority pages for Google to crawl first
+Allow: /
+Allow: /latest/
 Allow: /phim-bo/
 Allow: /phim-le/
 Allow: /tv-shows/
-Allow: /latest/
+Allow: /hoat-hinh/
+Allow: /vietsub/
+Allow: /phim-thuyet-minh/
+Allow: /phim-long-tieng/
+
+# Movie and episode pages
+Allow: /movies/
+Allow: /watch/
+Allow: /search/
 
 # Disallow unnecessary paths to save crawl budget
 Disallow: /api/
 Disallow: /_next/
 Disallow: /admin/
+Disallow: /auth/
+Disallow: /profile/
 Disallow: /*.json$
 
 # Crawl delay to be respectful
 Crawl-delay: 1
+
+# Host preference
+Host: https://phimhaytv.top
