@@ -373,7 +373,14 @@ export const getSuggestedMovies = async (
       slug: movie.slug,
       thumb_url: movie.thumb_url,
       year: movie.year,
-      category: movie.category.map(cat => typeof cat === 'string' ? cat : cat.name || cat.id)
+      category: Array.isArray(movie.category) ? movie.category.map(cat => {
+        if (typeof cat === 'string') {
+          return cat;
+        } else if (cat && typeof cat === 'object') {
+          return (cat as any).name || (cat as any).id || 'Unknown';
+        }
+        return 'Unknown';
+      }) : []
     }));
   } catch (error) {
     console.error('Error fetching movie suggestions:', error);
