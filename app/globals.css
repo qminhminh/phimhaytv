@@ -237,3 +237,89 @@ body {
     border: none;
   }
 }
+
+/* Hero Section Animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px #FFD700, 0 0 10px #FFD700, 0 0 15px #FFD700;
+  }
+  50% {
+    box-shadow: 0 0 10px #FFD700, 0 0 20px #FFD700, 0 0 30px #FFD700;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+  opacity: 0;
+}
+
+.animation-delay-600 {
+  animation-delay: 0.6s;
+  opacity: 0;
+}
+
+.animation-delay-800 {
+  animation-delay: 0.8s;
+  opacity: 0;
+}
+
+.text-shadow {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.text-shadow-lg {
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9), 1px 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Improved navbar blur effect */
+.navbar-blur {
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.navbar-solid {
+  background: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Hero gradient overlay */
+.hero-gradient {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}

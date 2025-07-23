@@ -5,6 +5,7 @@ import MovieCard from '@/components/shared/MovieCard';
 import { searchMovies } from '@/lib/api';
 import Link from 'next/link';
 import CardViewMovie from '@/components/shared/CardViewMovie';
+import SearchWithSuggestions from '@/components/shared/SearchWithSuggestions';
 
 interface SearchPageProps {
   searchParams: {
@@ -28,6 +29,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <div className="min-h-screen bg-[#121212] pt-24">
       <div className="container mx-auto px-4">
+        {/* Search Box */}
+        <div className="mb-8">
+          <div className="max-w-2xl mx-auto">
+            <SearchWithSuggestions 
+              placeholder="Tìm kiếm phim, chương trình TV..."
+              className="w-full"
+            />
+          </div>
+        </div>
+
         {keyword ? (
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-[#EAEAEA] mb-8">
@@ -89,10 +100,29 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </div>
         ) : (
             <div className="text-center py-12">
-                <h1 className="text-3xl md:text-4xl font-bold text-[#EAEAEA] mb-4">Tìm kiếm phim</h1>
-                <p className="text-[#A0A0A0] text-lg">
-                    Vui lòng nhập từ khóa vào ô tìm kiếm ở trên để bắt đầu.
-                </p>
+                <div className="mb-8">
+                    <Search size={64} className="mx-auto text-[#FFD700] mb-4" />
+                    <h1 className="text-3xl md:text-4xl font-bold text-[#EAEAEA] mb-4">Tìm kiếm phim</h1>
+                    <p className="text-[#A0A0A0] text-lg mb-6">
+                        Khám phá hàng ngàn bộ phim và chương trình TV
+                    </p>
+                </div>
+                
+                {/* Popular searches or trending */}
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-xl font-semibold text-[#EAEAEA] mb-4">Tìm kiếm phổ biến</h2>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                        {['Marvel', 'Avengers', 'Spider-Man', 'Batman', 'Anime', 'Hàn Quốc', 'Thái Lan', 'Hành động', 'Kinh dị', 'Tình cảm'].map((tag) => (
+                            <Link
+                                key={tag}
+                                href={`/search?q=${encodeURIComponent(tag)}`}
+                                className="px-4 py-2 bg-[#2A2A2A] hover:bg-[#FFD700] hover:text-[#121212] text-[#EAEAEA] rounded-full text-sm transition-all duration-200"
+                            >
+                                {tag}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
             </div>
         )}
       </div>

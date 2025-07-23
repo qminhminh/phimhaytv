@@ -353,6 +353,34 @@ export const searchMovies = async (
     return response.data;
   };
 
+// Tìm kiếm gợi ý phim cho autocomplete
+export const getSuggestedMovies = async (
+  keyword: string
+): Promise<{ name: string; slug: string; thumb_url: string; year: number; category: string[] }[]> => {
+  if (!keyword.trim() || keyword.length < 2) {
+    return [];
+  }
+  
+  try {
+    const result = await searchMovies(keyword, { 
+      limit: 8, // Chỉ lấy 8 kết quả đầu tiên cho suggestions
+      sort_field: 'modified.time',
+      sort_type: 'desc'
+    });
+    
+    return result.items.map(movie => ({
+      name: movie.name,
+      slug: movie.slug,
+      thumb_url: movie.thumb_url,
+      year: movie.year,
+      category: movie.category.map(cat => typeof cat === 'string' ? cat : cat.name || cat.id)
+    }));
+  } catch (error) {
+    console.error('Error fetching movie suggestions:', error);
+    return [];
+  }
+};
+
 // Lấy danh sách thể loại phim
 export const getCategories = async () => {
     try {

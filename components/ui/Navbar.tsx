@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Bell, User, Menu, X } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import SearchWithSuggestions from '@/components/shared/SearchWithSuggestions';
 
 const mainNavItems = [
   { title: 'Trang chủ', href: '/' },
@@ -22,10 +23,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const pathname = usePathname();
-  const router = useRouter();
-  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,31 +34,9 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setIsSearchOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [searchRef]);
-
   const isActive = (path: string) => {
     return pathname === path;
   };
-
-  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-        setSearchQuery('');
-        setIsSearchOpen(false);
-    }
-  }
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -95,7 +71,7 @@ export default function Navbar() {
           {/* Right Side */}
           <div className="flex items-center space-x-4">
             {/* Search */}
-            <div className="relative" ref={searchRef}>
+            <div className="relative">
               <button
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
                 className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
@@ -103,23 +79,11 @@ export default function Navbar() {
                 <Search size={20} />
               </button>
               {isSearchOpen && (
-                <div className="absolute top-full right-0 mt-2 w-72">
-                  <form onSubmit={handleSearchSubmit} className="relative">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Tìm kiếm phim, chương trình..."
-                      className="bg-[#1A1A1A] text-[#EAEAEA] pl-4 pr-10 py-2 rounded-full w-full focus:outline-none focus:ring-2 focus:ring-[#FFD700] border border-transparent focus:border-[#FFD700]"
-                      autoFocus
-                    />
-                    <button
-                      type="submit"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0A0] hover:text-white"
-                    >
-                      <Search size={18} />
-                    </button>
-                  </form>
+                <div className="absolute top-full right-0 mt-2 w-80">
+                  <SearchWithSuggestions 
+                    placeholder="Tìm kiếm phim, chương trình..."
+                    onSearch={() => setIsSearchOpen(false)}
+                  />
                 </div>
               )}
             </div>
@@ -161,6 +125,14 @@ export default function Navbar() {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-[#1A1A1A] rounded-lg mt-2 p-4">
+            {/* Mobile Search */}
+            <div className="mb-4">
+              <SearchWithSuggestions 
+                placeholder="Tìm kiếm phim, chương trình..."
+                onSearch={() => setIsMobileMenuOpen(false)}
+              />
+            </div>
+            
             {mainNavItems.map((item) => (
               <Link 
                 key={item.href}
