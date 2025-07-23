@@ -4,7 +4,7 @@ const path = require('path');
 const BASE_URL = 'https://phimapi.com';
 const SITE_URL = 'https://phimhaytv.top'; // ⚠️ CẬP NHẬT DOMAIN THỰC TẾ CỦA BẠN
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
-const SITEMAP_MAX_URLS = 25000; // Tăng lên để giảm số file sitemap
+const SITEMAP_MAX_URLS = 3500; // Giảm xuống 3.5k URLs mỗi file để chia nhỏ sitemap
 const DAILY_UPDATE_LIMIT = 25; // Lấy tối đa 25 phim để đảm bảo có đủ 20 phim mới
 
 // --- Helper Functions ---
@@ -160,64 +160,6 @@ ${sitemapIndexEntries}
   console.log(`Generated sitemap.xml (index file) with ${existingFiles.length} sitemaps.`);
 }
 
-async function getEpisodeUrlsForMovies(movies) {
-    let allEpisodeUrls = [];
-    const concurrencyLimit = 10; // Giảm xuống để tránh rate limit
-    let successCount = 0;
-    let errorCount = 0;
-    
-    console.log(`\nFetching episode data for ${movies.length} movies...`);
-
-    for (let i = 0; i < movies.length; i += concurrencyLimit) {
-        const movieBatch = movies.slice(i, i + concurrencyLimit);
-        process.stdout.write(`  - Processing movies ${i + 1}-${Math.min(i + concurrencyLimit, movies.length)}/${movies.length} (Success: ${successCount}, Errors: ${errorCount})...\r`);
-
-        const promises = movieBatch.map(async (movie) => {
-            const data = await fetcher(`/phim/${movie.slug}`);
-            if (!data) {
-                errorCount++;
-                return [];
-            }
-
-            const detail = data.movie || data.item;
-            const episodes = data.episodes || (data.item ? data.item.episodes : []);
-            if (!detail || !episodes) {
-                errorCount++;
-                return [];
-            }
-
-            successCount++;
-            const lastMod = getValidLastMod(detail);
-            const episodeUrls = [];
-
-            episodes.forEach(server => {
-                server.server_data?.forEach(episode => {
-                    episodeUrls.push(`
-  <url>
-    <loc>${SITE_URL}/watch/${movie.slug}/${episode.slug}</loc>
-    <lastmod>${lastMod}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>`);
-                });
-            });
-            return episodeUrls;
-        });
-
-        const results = await Promise.all(promises);
-        results.forEach(urls => allEpisodeUrls.push(...urls));
-        
-        // Thêm delay giữa các batch để tránh overload API
-        if (i + concurrencyLimit < movies.length) {
-            await delay(500); // 500ms pause between batches
-        }
-    }
-    
-    console.log(`\nCompleted! Success: ${successCount}, Errors: ${errorCount}`);
-    console.log(`Found ${allEpisodeUrls.length} total episode URLs.`);
-    return Array.from(new Set(allEpisodeUrls)); // Deduplicate
-}
-
 /**
  * Đọc và parse các URLs hiện có từ sitemap để tránh trùng lặp
  */
@@ -286,10 +228,10 @@ function updateExistingSitemap(fileName, newUrls, urlsToRemove = new Set()) {
 /**
  * FULL REBUILD MODE
  * Fetches all movies and regenerates all sitemap files from scratch.
- * This is slow and should be run periodically.
+ * CHỈ TẠO SITEMAP CHO MOVIES - KHÔNG CÓ EPISODES
  */
 async function generateFullSitemap() {
-  console.log('Starting full sitemap generation...');
+  console.log('Starting full sitemap generation (movies only)...');
   let movies = [];
   let currentPage = 1;
   let totalPages = 1;
@@ -320,8 +262,6 @@ async function generateFullSitemap() {
     fs.mkdirSync(PUBLIC_DIR, { recursive: true });
   }
 
-  const sitemapFiles = [];
-
   // 2. Validate movies có thể access được
   console.log('\nValidating movie accessibility...');
   const validatedMovies = [];
@@ -351,7 +291,7 @@ async function generateFullSitemap() {
   
   console.log(`\nValidated ${movieValidationCount}/${uniqueMovies.length} movies are accessible`);
   
-  // 3. Generate sitemap cho validated movies only
+  // 3. Generate sitemap CHỈ CHO MOVIES (không có episodes)
   const movieUrls = validatedMovies.map(movie => {
     const lastMod = getValidLastMod(movie);
     return `
@@ -363,32 +303,29 @@ async function generateFullSitemap() {
   </url>`;
   });
 
+  const sitemapFiles = [];
+  
+  // Chia nhỏ movie URLs thành các file với tối đa SITEMAP_MAX_URLS mỗi file
   for (let i = 0; i < movieUrls.length; i += SITEMAP_MAX_URLS) {
     const chunk = movieUrls.slice(i, i + SITEMAP_MAX_URLS);
-    const sitemapFileName = `sitemap-movies-${sitemapFiles.filter(f=>f.startsWith("sitemap-movies")).length + 1}.xml`;
+    const fileNumber = Math.floor(i / SITEMAP_MAX_URLS) + 1;
+    const sitemapFileName = `sitemap-movies-${fileNumber}.xml`;
     writeSitemapFile(sitemapFileName, chunk);
     sitemapFiles.push(sitemapFileName);
   }
 
-  // 4. Generate sitemap for episodes (chỉ cho validated movies)
-  const episodeUrls = await getEpisodeUrlsForMovies(validatedMovies);
-  for (let i = 0; i < episodeUrls.length; i += SITEMAP_MAX_URLS) {
-    const chunk = episodeUrls.slice(i, i + SITEMAP_MAX_URLS);
-    const sitemapFileName = `sitemap-episodes-${sitemapFiles.filter(f=>f.startsWith("sitemap-episodes")).length + 1}.xml`;
-    writeSitemapFile(sitemapFileName, chunk);
-    sitemapFiles.push(sitemapFileName);
-  }
+  console.log(`\nGenerated ${sitemapFiles.length} movie sitemap files with total ${movieUrls.length} movie URLs`);
   
-  // 5. Update sitemap index
+  // 4. Update sitemap index
   updateSitemapIndex(sitemapFiles);
 }
 
 /**
- * RECENT UPDATE MODE - Cải tiến
+ * RECENT UPDATE MODE - CHỈ MOVIES
  * Lấy đúng số lượng phim mới (khoảng 20), tránh trùng lặp với sitemap hiện có
  */
 async function generateRecentSitemap() {
-  console.log('Starting recent sitemap update...');
+  console.log('Starting recent sitemap update (movies only)...');
   
   let recentMovies = [];
   let page = 1;
@@ -454,9 +391,8 @@ async function generateRecentSitemap() {
     return;
   }
 
-  // Lấy danh sách URLs phim đã tồn tại
+  // Lấy danh sách URLs phim đã tồn tại từ file sitemap đầu tiên
   const existingMovieUrls = getExistingUrls('sitemap-movies-1.xml');
-  const existingEpisodeUrls = getExistingUrls('sitemap-episodes-1.xml');
   
   // Tạo URLs cho phim mới được validated (chỉ những phim chưa có trong sitemap)
   const newMovieUrls = [];
@@ -482,21 +418,6 @@ async function generateRecentSitemap() {
     }
   });
 
-  // Lấy URLs episodes cho phim mới (chỉ validated movies)
-  const newMoviesOnly = validatedRecentMovies.filter(movie => 
-    !existingMovieUrls.has(`${SITE_URL}/movies/${movie.slug}`)
-  );
-  
-  let newEpisodeUrls = [];
-  if (newMoviesOnly.length > 0) {
-    const allEpisodeUrls = await getEpisodeUrlsForMovies(newMoviesOnly);
-    // Chỉ lấy episodes chưa tồn tại
-    newEpisodeUrls = allEpisodeUrls.filter(episodeXml => {
-      const locMatch = episodeXml.match(/<loc>(.*?)<\/loc>/);
-      return locMatch && !existingEpisodeUrls.has(locMatch[1]);
-    });
-  }
-
   const updatedFiles = [];
   
   // Cập nhật sitemap movies
@@ -504,13 +425,6 @@ async function generateRecentSitemap() {
     console.log(`Adding ${newMovieUrls.length} new movie URLs to sitemap`);
     const movieFiles = updateExistingSitemap('sitemap-movies-1.xml', newMovieUrls);
     updatedFiles.push(...movieFiles);
-  }
-  
-  // Cập nhật sitemap episodes  
-  if (newEpisodeUrls.length > 0) {
-    console.log(`Adding ${newEpisodeUrls.length} new episode URLs to sitemap`);
-    const episodeFiles = updateExistingSitemap('sitemap-episodes-1.xml', newEpisodeUrls);
-    updatedFiles.push(...episodeFiles);
   }
 
   // Xóa các file sitemap-recent cũ nếu có
@@ -530,7 +444,7 @@ async function generateRecentSitemap() {
     
   updateSitemapIndex(allSitemapFiles);
   
-  console.log(`Updated sitemaps with ${newMovieUrls.length} new movies and ${newEpisodeUrls.length} new episodes`);
+  console.log(`Updated sitemaps with ${newMovieUrls.length} new movies (episodes removed from sitemap generation)`);
 }
 
 // --- Main Execution ---
@@ -544,7 +458,7 @@ async function main() {
     } else {
       await generateRecentSitemap();
     }
-    console.log('\nSitemap generation completed successfully!');
+    console.log('\nSitemap generation completed successfully! (Movies only, no episodes)');
   } catch (error) {
     console.error('\nAn error occurred during sitemap generation:', error);
     process.exit(1);

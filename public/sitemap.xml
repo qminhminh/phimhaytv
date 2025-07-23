@@ -2,39 +2,31 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
   <sitemap>
-    <loc>https://phimhaytv.top/sitemap-static.xml</loc>
-    <lastmod>2025-07-21T06:51:21.289Z</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://phimhaytv.top/sitemap-episodes-1.xml</loc>
-    <lastmod>2025-07-21T06:14:25.316Z</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://phimhaytv.top/sitemap-episodes-2.xml</loc>
-    <lastmod>2025-07-21T06:14:25.387Z</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://phimhaytv.top/sitemap-episodes-3.xml</loc>
-    <lastmod>2025-07-21T06:14:25.486Z</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://phimhaytv.top/sitemap-episodes-4.xml</loc>
-    <lastmod>2025-07-21T06:14:25.560Z</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://phimhaytv.top/sitemap-episodes-5.xml</loc>
-    <lastmod>2025-07-21T06:14:25.640Z</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://phimhaytv.top/sitemap-episodes-6.xml</loc>
-    <lastmod>2025-07-21T06:14:25.724Z</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://phimhaytv.top/sitemap-episodes-7.xml</loc>
-    <lastmod>2025-07-21T06:14:25.773Z</lastmod>
-  </sitemap>
-  <sitemap>
     <loc>https://phimhaytv.top/sitemap-movies-1.xml</loc>
-    <lastmod>2025-07-21T06:43:52.407Z</lastmod>
+    <lastmod>2025-07-23T05:15:40.578Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://phimhaytv.top/sitemap-movies-2.xml</loc>
+    <lastmod>2025-07-23T05:15:40.615Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://phimhaytv.top/sitemap-movies-3.xml</loc>
+    <lastmod>2025-07-23T05:15:40.622Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://phimhaytv.top/sitemap-movies-4.xml</loc>
+    <lastmod>2025-07-23T05:15:40.630Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://phimhaytv.top/sitemap-movies-5.xml</loc>
+    <lastmod>2025-07-23T05:15:40.638Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://phimhaytv.top/sitemap-movies-6.xml</loc>
+    <lastmod>2025-07-23T05:15:40.648Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://phimhaytv.top/sitemap-movies-7.xml</loc>
+    <lastmod>2025-07-23T05:15:40.652Z</lastmod>
   </sitemap>
 </sitemapindex>

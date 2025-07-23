@@ -17,7 +17,7 @@ function fixSitemapXMLFormat() {
     const filePath = path.join(PUBLIC_DIR, file);
     console.log(`\n📄 Processing ${file}...`);
     
-    try {
+    try { 
       let content = fs.readFileSync(filePath, 'utf-8');
       
       // Extract all URL blocks

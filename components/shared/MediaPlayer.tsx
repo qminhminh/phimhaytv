@@ -46,6 +46,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const [isInPiP, setIsInPiP] = useState(false);
   const [m3u8LoadFailed, setM3u8LoadFailed] = useState(false);
   const [isM3u8Loading, setIsM3u8Loading] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -213,7 +214,13 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   useEffect(() => {
     setIsPiPSupported('pictureInPictureEnabled' in document && document.pictureInPictureEnabled);
     const checkIsMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkIsIOS = () => {
+      const userAgent = window.navigator.userAgent;
+      setIsIOS(/iPad|iPhone|iPod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+    };
+    
     checkIsMobile();
+    checkIsIOS();
     window.addEventListener('resize', checkIsMobile);
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
@@ -233,6 +240,24 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       video.removeEventListener('leavepictureinpicture', onLeavePiP);
     };
   }, [isPiPSupported, useIframe]);
+
+  // Effect để xử lý webkit fullscreen events cho iOS
+  useEffect(() => {
+    if (!isIOS || useIframe || !videoRef.current) return;
+    const video = videoRef.current;
+
+    const onEnterFullscreen = () => setIsFullscreen(true);
+    const onExitFullscreen = () => setIsFullscreen(false);
+
+    // Thêm event listeners cho webkit fullscreen events
+    video.addEventListener('webkitbeginfullscreen', onEnterFullscreen);
+    video.addEventListener('webkitendfullscreen', onExitFullscreen);
+
+    return () => {
+      video.removeEventListener('webkitbeginfullscreen', onEnterFullscreen);
+      video.removeEventListener('webkitendfullscreen', onExitFullscreen);
+    };
+  }, [isIOS, useIframe]);
 
   const togglePlay = useCallback(() => {
     if (videoRef.current && !useIframe) {
@@ -392,13 +417,27 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      // Xử lý cả standard và webkit fullscreen events
+      const isInFullscreen = !!(
+        document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement || 
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isInFullscreen);
     };
 
+    // Add event listeners cho cả standard và webkit events
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, []);
 
@@ -441,21 +480,75 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     }
   };
 
-  const toggleFullscreen = useCallback(() => {
-    if (useIframe && iframeRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      // Kiểm tra nếu đang trong fullscreen mode
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement || 
+        (document as any).msFullscreenElement
+      );
+
+      if (isCurrentlyFullscreen) {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          (document as any).mozCancelFullScreen();
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen();
+        }
       } else {
-        iframeRef.current.requestFullscreen();
+        // Enter fullscreen
+        if (useIframe && iframeRef.current) {
+          // Xử lý fullscreen cho iframe
+          if (iframeRef.current.requestFullscreen) {
+            await iframeRef.current.requestFullscreen();
+          } else if ((iframeRef.current as any).webkitRequestFullscreen) {
+            (iframeRef.current as any).webkitRequestFullscreen();
+          } else if ((iframeRef.current as any).mozRequestFullScreen) {
+            (iframeRef.current as any).mozRequestFullScreen();
+          } else if ((iframeRef.current as any).msRequestFullscreen) {
+            (iframeRef.current as any).msRequestFullscreen();
+          }
+        } else if (isIOS && videoRef.current && !useIframe) {
+          // Trên iOS, sử dụng webkitEnterFullscreen cho video element
+          if ((videoRef.current as any).webkitEnterFullscreen) {
+            (videoRef.current as any).webkitEnterFullscreen();
+          } else if ((videoRef.current as any).webkitRequestFullscreen) {
+            (videoRef.current as any).webkitRequestFullscreen();
+          }
+        } else if (playerContainerRef.current) {
+          // Desktop browsers - fullscreen container
+          if (playerContainerRef.current.requestFullscreen) {
+            await playerContainerRef.current.requestFullscreen();
+          } else if ((playerContainerRef.current as any).webkitRequestFullscreen) {
+            (playerContainerRef.current as any).webkitRequestFullscreen();
+          } else if ((playerContainerRef.current as any).mozRequestFullScreen) {
+            (playerContainerRef.current as any).mozRequestFullScreen();
+          } else if ((playerContainerRef.current as any).msRequestFullscreen) {
+            (playerContainerRef.current as any).msRequestFullscreen();
+          }
+        }
       }
-    } else if (playerContainerRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        playerContainerRef.current.requestFullscreen();
+    } catch (error) {
+      console.error('Lỗi khi chuyển đổi fullscreen:', error);
+      
+      // Fallback cho iOS nếu phương pháp chính không hoạt động
+      if (isIOS && videoRef.current && !useIframe) {
+        try {
+          if ((videoRef.current as any).webkitEnterFullscreen) {
+            (videoRef.current as any).webkitEnterFullscreen();
+          }
+        } catch (fallbackError) {
+          console.error('Lỗi fallback fullscreen trên iOS:', fallbackError);
+        }
       }
     }
-  }, [useIframe]);
+  }, [useIframe, isIOS]);
 
   useEffect(() => {
     if (useIframe) return;
@@ -535,6 +628,9 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             ref={videoRef}
             className="w-full h-full object-contain"
             playsInline
+            {...(isIOS && { webkitPlaysinline: true })}
+            controls={false}
+            preload="metadata"
             poster={poster}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -547,6 +643,10 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
               }
             }}
             onEnded={playNextEpisode}
+            {...(isIOS && {
+              onWebkitEnterFullscreen: () => setIsFullscreen(true),
+              onWebkitExitFullscreen: () => setIsFullscreen(false)
+            })}
           >
             {videoUrl && <source src={videoUrl} type="video/mp4" />}
             {m3u8Url && <source src={m3u8Url} type="application/x-mpegURL" />}
