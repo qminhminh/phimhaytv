@@ -4,7 +4,7 @@ const path = require('path');
 const BASE_URL = 'https://phimapi.com';
 const SITE_URL = 'https://phimhaytv.top'; // ⚠️ CẬP NHẬT DOMAIN THỰC TẾ CỦA BẠN
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
-const SITEMAP_MAX_URLS = 3500; // Giảm xuống 3.5k URLs mỗi file để chia nhỏ sitemap
+const SITEMAP_MAX_URLS = 50000; // Tối đa 50,000 URLs mỗi file theo chuẩn Google
 const DAILY_UPDATE_LIMIT = 25; // Lấy tối đa 25 phim để đảm bảo có đủ 20 phim mới
 
 // --- Helper Functions ---
@@ -262,15 +262,33 @@ async function generateFullSitemap() {
     fs.mkdirSync(PUBLIC_DIR, { recursive: true });
   }
 
-  // 2. Validate movies có thể access được
-  console.log('\nValidating movie accessibility...');
+  // 2. Filter và validate movies - loại bỏ duplicate content (phan-X pattern)
+  console.log('\nFiltering and validating movies...');
+
+  // Filter out potential duplicate content (movies with "phan-X" pattern)
+  const filteredMovies = uniqueMovies.filter(movie => {
+    const slug = movie.slug.toLowerCase();
+    // Remove movies that are clearly parts of series (phan-1, phan-2, etc.)
+    // Keep only the main/first part or movies without "phan-" pattern
+    if (slug.includes('phan-')) {
+      const phanMatch = slug.match(/phan-(\d+)/);
+      if (phanMatch && parseInt(phanMatch[1]) > 1) {
+        // Only keep phan-1 or movies where we can't determine part number
+        return false;
+      }
+    }
+    return true;
+  });
+
+  console.log(`Filtered ${uniqueMovies.length} -> ${filteredMovies.length} movies (removed ${uniqueMovies.length - filteredMovies.length} potential duplicates)`);
+
   const validatedMovies = [];
   let movieValidationCount = 0;
-  
-  for (let i = 0; i < uniqueMovies.length; i += 20) {
-    const movieBatch = uniqueMovies.slice(i, i + 20);
-    process.stdout.write(`  - Validating movies ${i + 1}-${Math.min(i + 20, uniqueMovies.length)}/${uniqueMovies.length}...\r`);
-    
+
+  for (let i = 0; i < filteredMovies.length; i += 20) {
+    const movieBatch = filteredMovies.slice(i, i + 20);
+    process.stdout.write(`  - Validating movies ${i + 1}-${Math.min(i + 20, filteredMovies.length)}/${filteredMovies.length}...\r`);
+
     const validationPromises = movieBatch.map(async (movie) => {
       const data = await fetcher(`/phim/${movie.slug}`);
       if (data && (data.movie || data.item)) {
@@ -279,12 +297,12 @@ async function generateFullSitemap() {
       }
       return null;
     });
-    
+
     const results = await Promise.all(validationPromises);
     validatedMovies.push(...results.filter(movie => movie !== null));
-    
+
     // Delay between validation batches
-    if (i + 20 < uniqueMovies.length) {
+    if (i + 20 < filteredMovies.length) {
       await delay(300);
     }
   }
@@ -292,29 +310,39 @@ async function generateFullSitemap() {
   console.log(`\nValidated ${movieValidationCount}/${uniqueMovies.length} movies are accessible`);
   
   // 3. Generate sitemap CHỈ CHO MOVIES (không có episodes)
-  const movieUrls = validatedMovies.map(movie => {
+  console.log('\nGenerating URLs for movies only...');
+
+  const movieUrls = [];
+
+  // Generate movie URLs
+  for (const movie of validatedMovies) {
     const lastMod = getValidLastMod(movie);
-    return `
+    movieUrls.push(`
   <url>
     <loc>${SITE_URL}/movies/${movie.slug}</loc>
     <lastmod>${lastMod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>`;
-  });
+  </url>`);
+  }
+
+  console.log(`Generated ${movieUrls.length} movie URLs`);
+
+  // Use movie URLs as final URLs
+  const finalUrls = movieUrls;
 
   const sitemapFiles = [];
-  
-  // Chia nhỏ movie URLs thành các file với tối đa SITEMAP_MAX_URLS mỗi file
-  for (let i = 0; i < movieUrls.length; i += SITEMAP_MAX_URLS) {
-    const chunk = movieUrls.slice(i, i + SITEMAP_MAX_URLS);
+
+  // Chia nhỏ URLs thành các file với tối đa SITEMAP_MAX_URLS mỗi file
+  for (let i = 0; i < finalUrls.length; i += SITEMAP_MAX_URLS) {
+    const chunk = finalUrls.slice(i, i + SITEMAP_MAX_URLS);
     const fileNumber = Math.floor(i / SITEMAP_MAX_URLS) + 1;
     const sitemapFileName = `sitemap-movies-${fileNumber}.xml`;
     writeSitemapFile(sitemapFileName, chunk);
     sitemapFiles.push(sitemapFileName);
   }
 
-  console.log(`\nGenerated ${sitemapFiles.length} movie sitemap files with total ${movieUrls.length} movie URLs`);
+  console.log(`\nGenerated ${sitemapFiles.length} sitemap files with total ${finalUrls.length} URLs (${movieUrls.length} movies)`);
   
   // 4. Update sitemap index
   updateSitemapIndex(sitemapFiles);
