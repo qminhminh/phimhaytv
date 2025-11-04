@@ -20,14 +20,6 @@ Allow: /movies/
 Allow: /watch/
 Allow: /search/
 
-# Disallow unnecessary paths to save crawl budget
-Disallow: /api/
-Disallow: /_next/
-Disallow: /admin/
-Disallow: /auth/
-Disallow: /profile/
-Disallow: /*.json$
-
 # Crawl delay to be respectful
 Crawl-delay: 1
 
