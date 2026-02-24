@@ -257,8 +257,8 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                                     <p><strong>Lưu ý:</strong> Đây là các liên kết tệp `.m3u8`, không phải tệp video trực tiếp. Bạn cần dùng các phần mềm chuyên dụng như VLC Media Player hoặc công cụ trực tuyến để tải video từ những tệp này.</p>
                                     <p>
                                         Đây là trang công cụ download m3u8 trực tuyến, hãy copy link tập muốn tải và bỏ vào: {' '}
-                                        <a href="https://m3u8.dev/" target="_blank" rel="noopener noreferrer" className="font-semibold text-amber-400 hover:text-amber-300 underline">
-                                            https://m3u8.dev/
+                                        <a href="https://www.m3u8player.online/downloader" target="_blank" rel="noopener noreferrer" className="font-semibold text-amber-400 hover:text-amber-300 underline">
+                                            https://www.m3u8player.online/downloader
                                         </a>
                                     </p>
                                 </div>
