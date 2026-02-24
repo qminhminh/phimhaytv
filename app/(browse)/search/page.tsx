@@ -35,6 +35,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <SearchWithSuggestions 
               placeholder="Tìm kiếm phim, chương trình TV..."
               className="w-full"
+              autoFocus={true}
             />
           </div>
         </div>

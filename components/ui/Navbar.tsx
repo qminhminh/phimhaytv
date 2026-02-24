@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Bell, User, Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import SearchWithSuggestions from '@/components/shared/SearchWithSuggestions';
+
 
 const mainNavItems = [
   { title: 'Trang chủ', href: '/' },
@@ -21,7 +21,6 @@ const mainNavItems = [
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -71,22 +70,13 @@ export default function Navbar() {
           {/* Right Side */}
           <div className="flex items-center space-x-4">
             {/* Search */}
-            <div className="relative">
-              <button
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
-              >
-                <Search size={20} />
-              </button>
-              {isSearchOpen && (
-                <div className="absolute top-full right-0 mt-2 w-80">
-                  <SearchWithSuggestions 
-                    placeholder="Tìm kiếm phim, chương trình..."
-                    onSearch={() => setIsSearchOpen(false)}
-                  />
-                </div>
-              )}
-            </div>
+            <Link
+              href="/search"
+              className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors"
+              aria-label="Tìm kiếm phim"
+            >
+              <Search size={20} />
+            </Link>
 
             {/* Notifications */}
             {/* <button className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
@@ -124,14 +114,7 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-[#1A1A1A] rounded-lg mt-2 p-4">
-            {/* Mobile Search */}
-            <div className="mb-4">
-              <SearchWithSuggestions 
-                placeholder="Tìm kiếm phim, chương trình..."
-                onSearch={() => setIsMobileMenuOpen(false)}
-              />
-            </div>
+          <div className="md:hidden bg-[#1A1A1A] rounded-lg mt-2 p-4 shadow-xl">
             
             {mainNavItems.map((item) => (
               <Link 
