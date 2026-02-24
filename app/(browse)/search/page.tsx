@@ -2,7 +2,7 @@ import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MovieCard from '@/components/shared/MovieCard';
-import { searchMovies } from '@/lib/api';
+import { searchMovies, getLatestMovies } from '@/lib/api';
 import Link from 'next/link';
 import CardViewMovie from '@/components/shared/CardViewMovie';
 import SearchWithSuggestions from '@/components/shared/SearchWithSuggestions';
@@ -23,6 +23,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     ? await searchMovies(keyword, { page }) 
     : null;
 
+  const newMoviesResponse = !keyword 
+    ? await getLatestMovies({ limit: 12 }) 
+    : null;
+
   const totalPages = searchResults?.params.pagination.totalPages || 0;
   const imageDomain = searchResults?.APP_DOMAIN_CDN_IMAGE || '';
 
@@ -35,6 +39,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <SearchWithSuggestions 
               placeholder="Tìm kiếm phim, chương trình TV..."
               className="w-full"
+              autoFocus={true}
             />
           </div>
         </div>
@@ -109,7 +114,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </div>
                 
                 {/* Popular searches or trending */}
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-4xl mx-auto mb-12">
                     <h2 className="text-xl font-semibold text-[#EAEAEA] mb-4">Tìm kiếm phổ biến</h2>
                     <div className="flex flex-wrap gap-2 justify-center">
                         {['Marvel', 'Avengers', 'Spider-Man', 'Batman', 'Anime', 'Hàn Quốc', 'Thái Lan', 'Hành động', 'Kinh dị', 'Tình cảm'].map((tag) => (
@@ -123,6 +128,19 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                         ))}
                     </div>
                 </div>
+
+                {/* New movies */}
+                {newMoviesResponse && newMoviesResponse.data && newMoviesResponse.data.items && (
+                    <div className="text-left mt-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-semibold text-[#EAEAEA]">Phim Mới Cập Nhật</h2>
+                        </div>
+                        <CardViewMovie 
+                            items={newMoviesResponse.data.items as any} 
+                            imageDomain={newMoviesResponse.data.APP_DOMAIN_CDN_IMAGE} 
+                        />
+                    </div>
+                )}
             </div>
         )}
       </div>

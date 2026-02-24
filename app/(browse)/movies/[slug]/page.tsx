@@ -12,6 +12,7 @@ import { CopyLinkButton } from '@/components/shared/CopyLinkButton';
 import { MovieRatings } from '@/components/shared/MovieRatings';
 import { MovieAnalysis } from '@/components/shared/MovieAnalysis';
 import { MovieStats } from '@/components/shared/MovieStats';
+import { PlayMovieButton } from '@/components/shared/PlayMovieButton';
 
 type MovieDetailPageProps = {
     params: {
@@ -130,10 +131,12 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                         {/* Action Buttons */}
                         <div className="flex flex-wrap gap-4 pt-2">
                             {firstEpisode && (
-                                <Link href={`/watch/${movie.slug}/${firstEpisode.slug}`} className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg shadow-amber-500/20">
-                                    <PlayCircle size={24} />
-                                    <span>Xem Ngay</span>
-                                </Link>
+                                <PlayMovieButton 
+                                    movieId={movie._id} 
+                                    movieSlug={movie.slug} 
+                                    firstEpisodeSlug={firstEpisode.slug} 
+                                    className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg shadow-amber-500/20"
+                                />
                             )}
                             {movie.trailer_url && (
                                 <a href={movie.trailer_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg">
@@ -254,8 +257,8 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                                     <p><strong>Lưu ý:</strong> Đây là các liên kết tệp `.m3u8`, không phải tệp video trực tiếp. Bạn cần dùng các phần mềm chuyên dụng như VLC Media Player hoặc công cụ trực tuyến để tải video từ những tệp này.</p>
                                     <p>
                                         Đây là trang công cụ download m3u8 trực tuyến, hãy copy link tập muốn tải và bỏ vào: {' '}
-                                        <a href="https://m3u8.dev/" target="_blank" rel="noopener noreferrer" className="font-semibold text-amber-400 hover:text-amber-300 underline">
-                                            https://m3u8.dev/
+                                        <a href="https://www.m3u8player.online/downloader" target="_blank" rel="noopener noreferrer" className="font-semibold text-amber-400 hover:text-amber-300 underline">
+                                            https://www.m3u8player.online/downloader
                                         </a>
                                     </p>
                                 </div>

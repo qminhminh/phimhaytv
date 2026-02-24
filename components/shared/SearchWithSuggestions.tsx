@@ -19,13 +19,17 @@ interface SearchWithSuggestionsProps {
   onSearch?: (query: string) => void;
   className?: string;
   imageDomain?: string;
+  isInline?: boolean;
+  autoFocus?: boolean;
 }
 
 export default function SearchWithSuggestions({ 
   placeholder = "Tìm kiếm phim, chương trình...",
   onSearch,
   className = "",
-  imageDomain = "https://phimimg.com"
+  imageDomain = "https://phimimg.com",
+  isInline = false,
+  autoFocus = false
 }: SearchWithSuggestionsProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -38,6 +42,13 @@ export default function SearchWithSuggestions({
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
+
+  // Auto focus effect
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
 
   // Load recent searches từ localStorage
   useEffect(() => {
@@ -125,6 +136,9 @@ export default function SearchWithSuggestions({
               router.push(`/movies/${suggestion.slug}`);
               setIsOpen(false);
               setQuery('');
+              if (onSearch) {
+                onSearch('');
+              }
             }
           } else {
             // Recent searches mode
@@ -184,6 +198,9 @@ export default function SearchWithSuggestions({
     setIsOpen(false);
     setQuery('');
     setSelectedIndex(-1);
+    if (onSearch) {
+      onSearch(''); // Invoke callback to close parent modal
+    }
   };
 
   // Handle recent search click
@@ -218,7 +235,11 @@ export default function SearchWithSuggestions({
 
       {/* Suggestions Dropdown */}
       {isOpen && (showSuggestions || showRecentSearches || isLoading) && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl max-h-96 overflow-y-auto z-50">
+        <div className={
+          isInline
+            ? "mt-2 bg-[#1A1A1A] border-t border-[#2A2A2A] max-h-[60vh] overflow-y-auto"
+            : "absolute top-full left-0 right-0 mt-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg shadow-xl max-h-96 overflow-y-auto z-50"
+        }>
           {isLoading && (
             <div className="px-4 py-3 text-[#A0A0A0] text-sm">
               <div className="flex items-center space-x-2">
