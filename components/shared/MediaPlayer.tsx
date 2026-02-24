@@ -414,6 +414,11 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         clearTimeout(tapTimeoutRef.current);
         tapTimeoutRef.current = null;
 
+        if (!isMobile) {
+            toggleFullscreen();
+            return;
+        }
+
         const rect = e.currentTarget.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         
@@ -427,8 +432,15 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             togglePlay();
         }
     } else {
+        if (!isMobile) {
+            togglePlay();
+            setShowControls(true);
+        }
+
         tapTimeoutRef.current = setTimeout(() => {
-            setShowControls(prev => !prev);
+            if (isMobile) {
+                setShowControls(prev => !prev);
+            }
             tapTimeoutRef.current = null;
         }, 300);
     }
@@ -725,13 +737,15 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
         {/* Custom Controls */}
         <div 
-          className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
-          onClick={(e) => e.stopPropagation()}
+          className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}
         >
           {/* Top controls could go here if needed */}
           <div></div>
           {/* Bottom controls */}
-          <div className="p-2 sm:p-4 bg-gradient-to-t from-black/70 to-transparent">
+          <div 
+            className="p-2 sm:p-4 bg-gradient-to-t from-black/70 to-transparent pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Progress Bar */}
             <input
               type="range"
