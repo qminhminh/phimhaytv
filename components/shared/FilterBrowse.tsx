@@ -11,6 +11,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ReactCountryFlag from "react-country-flag";
+
+const slugToCountryCode: Record<string, string> = {
+  'viet-nam': 'VN',
+  'han-quoc': 'KR',
+  'trung-quoc': 'CN',
+  'nhat-ban': 'JP',
+  'thai-lan': 'TH',
+  'my': 'US',
+  'au-my': 'US',
+  'anh': 'GB',
+  'phap': 'FR',
+  'duc': 'DE',
+  'an-do': 'IN',
+  'dai-loan': 'TW',
+  'hong-kong': 'HK',
+  'nga': 'RU',
+  'tay-ban-nha': 'ES',
+  'y': 'IT',
+  'uc': 'AU',
+  'canada': 'CA',
+  'malaysia': 'MY',
+  'indonesia': 'ID',
+  'philippines': 'PH',
+  'singapore': 'SG',
+  'bo-dao-nha': 'PT',
+  'thuy-dien': 'SE',
+  'na-uy': 'NO',
+  'dan-mach': 'DK',
+  'ha-lan': 'NL',
+  'bi': 'BE',
+  'ba-lan': 'PL',
+  'tho-nhi-ky': 'TR',
+  'mexico': 'MX',
+  'brazil': 'BR',
+  'argentina': 'AR',
+  'nam-phi': 'ZA',
+  'lien-xo': 'RU',
+  'thuy-si': 'CH',
+};
 
 interface FilterBrowseProps {
   baseUrl: string;
@@ -145,9 +185,25 @@ export default function FilterBrowse({
             <SelectValue placeholder="Quốc gia..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả quốc gia</SelectItem>
+            <SelectItem value="all">
+              <div className="flex items-center gap-2">
+                <span>Tất cả quốc gia</span>
+              </div>
+            </SelectItem>
             {countries.map((c) => (
-              <SelectItem key={c.id} value={c.slug}>{c.name}</SelectItem>
+              <SelectItem key={c.id} value={c.slug}>
+                <div className="flex items-center gap-2">
+                  {slugToCountryCode[c.slug] && (
+                    <ReactCountryFlag 
+                      countryCode={slugToCountryCode[c.slug]} 
+                      svg 
+                      className="border border-neutral-300 dark:border-neutral-700 rounded-sm shadow-sm"
+                      style={{ width: '1.2em', height: '1.2em', objectFit: 'cover' }} 
+                    />
+                  )}
+                  <span>{c.name}</span>
+                </div>
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
