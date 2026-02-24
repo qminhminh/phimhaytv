@@ -178,6 +178,35 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     }
   }, [m3u8Url, m3u8LoadFailed]);
 
+  // Helper to save progress reliably
+  const saveProgress = useCallback(() => {
+    if (videoRef.current && movieId && episodeSlug && !useIframe) {
+      const current = videoRef.current.currentTime;
+      const total = videoRef.current.duration;
+      
+      // Nếu đã xem hơn 98%, xóa progress
+      if (total > 0 && current / total > 0.98) {
+        try {
+          localStorage.removeItem(progressKey);
+        } catch (error) {
+           console.error("Failed to remove progress from localStorage", error);
+        }
+      } else if (current > 5) {
+        try {
+          const progress = {
+              currentTime: current,
+              timestamp: Date.now(),
+          };
+          localStorage.setItem(progressKey, JSON.stringify(progress));
+          localStorage.setItem(`movie-latest-episode-${movieId}`, episodeSlug);
+          lastSaveTimestampRef.current = Date.now();
+        } catch (error) {
+          console.error("Failed to save progress to localStorage", error);
+        }
+      }
+    }
+  }, [movieId, episodeSlug, useIframe, progressKey]);
+
   useEffect(() => {
     if (useIframe || !movieId || !episodeSlug) {
         setShowResumeDialog(false);
@@ -186,13 +215,26 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
     let isMounted = true;
 
+    // Cleanup old progress for the same movie to save localStorage memory
+    try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(`movie-progress-${movieId}-`) && key !== progressKey) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+    } catch (e) {
+        console.error("Cleanup failed", e);
+    }
+
     try {
         const savedProgress = localStorage.getItem(progressKey);
         if (savedProgress) {
-            const { currentTime: savedTime, timestamp } = JSON.parse(savedProgress);
-            const oneHour = 3600 * 1000;
-            // Chỉ hiển thị dialog nếu component vẫn còn mounted
-            if (isMounted && Date.now() - timestamp < oneHour && savedTime > 5) {
+            const { currentTime: savedTime } = JSON.parse(savedProgress);
+            // Lưu trữ dài hạn không giới hạn thời gian, chỉ hiển thị nếu time > 5s
+            if (isMounted && savedTime > 5) {
                 setResumeTime(savedTime);
                 setShowResumeDialog(true);
             } else {
@@ -206,10 +248,26 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         setShowResumeDialog(false);
     }
 
-    return () => {
-        isMounted = false;
+    // Add unmount and visibility change listeners
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveProgress();
+      }
     };
-  }, [progressKey, useIframe, movieId, episodeSlug]);
+    const handleBeforeUnload = () => {
+      saveProgress();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      isMounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      saveProgress(); // Ensure progress is saved when component unmounts
+    };
+  }, [progressKey, useIframe, movieId, episodeSlug, saveProgress]);
 
   useEffect(() => {
     setIsPiPSupported('pictureInPictureEnabled' in document && document.pictureInPictureEnabled);
@@ -280,34 +338,13 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const handleTimeUpdate = () => {
     if (videoRef.current && !useIframe) {
       const currentTime = videoRef.current.currentTime;
-      const duration = videoRef.current.duration;
       setCurrentTime(currentTime);
 
-      // Nếu người dùng đã xem hơn 98% thời lượng, hãy xóa tiến trình đã lưu
-      // để không hiển thị hộp thoại tiếp tục ở tập sau.
-      if (duration > 0 && currentTime / duration > 0.98) {
-        try {
-          localStorage.removeItem(progressKey);
-        } catch (error) {
-           console.error("Failed to remove progress from localStorage", error);
-        }
-        return; // Dừng lại để không lưu lại tiến trình mới
-      }
-      
       if (movieId && episodeSlug) {
         const now = Date.now();
         // Lưu tiến trình mỗi 15 giây
         if (now - lastSaveTimestampRef.current > 15000) {
-            try {
-                const progress = {
-                    currentTime: currentTime,
-                    timestamp: now,
-                };
-                localStorage.setItem(progressKey, JSON.stringify(progress));
-                lastSaveTimestampRef.current = now;
-            } catch (error) {
-                console.error("Failed to save progress to localStorage", error);
-            }
+            saveProgress();
         }
       }
     }
@@ -593,16 +630,16 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       onMouseLeave={() => { if (isPlaying) setShowControls(false) }}
     >
       <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
+        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white w-11/12 max-w-md">
             <AlertDialogHeader>
                 <AlertDialogTitle>Tiếp tục xem?</AlertDialogTitle>
                 <AlertDialogDescription className="text-zinc-400">
-                    Bạn đã xem đến {formatTime(resumeTime)}. Bạn có muốn xem tiếp từ đây không?
+                    Bạn đã xem đến {formatTime(resumeTime)}. Bạn có muốn xem tiếp từ đây không hay muốn coi lại từ đầu?
                 </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel onClick={handleDismissResume}>Không, bắt đầu lại</AlertDialogCancel>
-                <AlertDialogAction onClick={handleResume}>Có, xem tiếp</AlertDialogAction>
+            <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+                <AlertDialogCancel className="mt-0 sm:mt-0" onClick={handleDismissResume}>Coi lại từ đầu</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResume}>Xem tiếp</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -633,7 +670,10 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             preload="metadata"
             poster={poster}
             onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
+            onPause={() => {
+              setIsPlaying(false);
+              saveProgress(); // Luôn lưu khi pause
+            }}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onVolumeChange={() => {
