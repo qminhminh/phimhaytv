@@ -6,17 +6,19 @@ import MediaPlayer from '@/components/shared/MediaPlayer';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 
 type WatchPageProps = {
-    params: {
+    params: Promise<{
         movie_slug: string;
         episode_slug: string;
-    };
-    searchParams: {
+    }>;
+    searchParams: Promise<{
         server?: string;
-    }
+    }>;
 };
 
 export async function generateMetadata({ params, searchParams }: WatchPageProps): Promise<Metadata> {
-    const { movie_slug, episode_slug } = params;
+    const resolvedParams = await params;
+    const resolvedSearchParams = await searchParams;
+    const { movie_slug, episode_slug } = resolvedParams;
     const data = await getMovieBySlug(movie_slug);
     
     if (!data || !data.movie) {
@@ -26,7 +28,7 @@ export async function generateMetadata({ params, searchParams }: WatchPageProps)
     }
 
     const { movie, episodes } = data;
-    const currentEpisodeData = findEpisode(episodes, episode_slug, searchParams.server);
+    const currentEpisodeData = findEpisode(episodes, episode_slug, resolvedSearchParams.server);
     const episodeName = currentEpisodeData ? currentEpisodeData.episode.name : 'Tập mới nhất';
 
     return {
@@ -112,8 +114,10 @@ async function getValidatedEmbedUrl(url: string, timeout = 4000): Promise<string
 }
 
 export default async function WatchPage({ params, searchParams }: WatchPageProps) {
-    const { movie_slug, episode_slug } = params;
-    const { server: serverQuery } = searchParams;
+    const resolvedParams = await params;
+    const resolvedSearchParams = await searchParams;
+    const { movie_slug, episode_slug } = resolvedParams;
+    const { server: serverQuery } = resolvedSearchParams;
 
     const data = await getMovieBySlug(movie_slug);
 

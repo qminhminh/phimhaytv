@@ -15,13 +15,14 @@ import { MovieStats } from '@/components/shared/MovieStats';
 import { PlayMovieButton } from '@/components/shared/PlayMovieButton';
 
 type MovieDetailPageProps = {
-    params: {
+    params: Promise<{
         slug: string;
-    };
+    }>;
 };
 
 export async function generateMetadata({ params }: MovieDetailPageProps): Promise<Metadata> {
-    const enhancedData = await getEnhancedMovieData(params.slug);
+    const resolvedParams = await params;
+    const enhancedData = await getEnhancedMovieData(resolvedParams.slug);
 
     if (!enhancedData) {
         return {
@@ -72,9 +73,10 @@ const formatServerName = (name: string) => {
 }
 
 export default async function MovieDetailPage({ params }: MovieDetailPageProps) {
+    const resolvedParams = await params;
     return (
         <Suspense fallback={<MovieDetailSkeleton />}>
-            <MovieDetailContent slug={params.slug} />
+            <MovieDetailContent slug={resolvedParams.slug} />
         </Suspense>
     );
 }
