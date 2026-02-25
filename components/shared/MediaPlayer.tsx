@@ -180,18 +180,29 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     const playM3u8 = (video: HTMLVideoElement, url: string, art: Artplayer) => {
       if (Hls.isSupported()) {
         if (hls) hls.destroy();
+        
+        // Optimized HLS configuration
         hls = new Hls({
           debug: false,
           enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 90
+          lowLatencyMode: false,
+          backBufferLength: 90,
+          manifestLoadingTimeOut: 10000,
+          manifestLoadingMaxRetry: 3,
+          levelLoadingTimeOut: 10000,
+          levelLoadingMaxRetry: 3,
+          fragLoadingTimeOut: 10000,
+          fragLoadingMaxRetry: 6,
+          startLevel: -1,
         });
         
+        if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+        
         m3u8TimeoutRef.current = setTimeout(() => {
-          console.warn('M3U8 load timeout after 5 seconds, falling back to embed');
+          console.warn('M3U8 load timeout after 15 seconds, falling back to embed');
           setM3u8LoadFailed(true);
           setIsM3u8Loading(false);
-        }, 5000);
+        }, 15000);
 
         hls.loadSource(url);
         hls.attachMedia(video);
@@ -199,13 +210,28 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
           setIsM3u8Loading(false);
+          setM3u8LoadFailed(false);
         });
 
         hls.on(Hls.Events.ERROR, (event, data) => {
           if (data.fatal) {
-             console.error('HLS error:', data);
-             setM3u8LoadFailed(true);
-             setIsM3u8Loading(false);
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.warn('Fatal network error, trying to recover...');
+                hls?.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.warn('Fatal media error, trying to recover...');
+                hls?.recoverMediaError();
+                break;
+              default:
+                console.error('Unrecoverable HLS error:', data);
+                if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+                setM3u8LoadFailed(true);
+                setIsM3u8Loading(false);
+                hls?.destroy();
+                break;
+            }
           }
         });
 
@@ -216,13 +242,21 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
         
+        if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+        m3u8TimeoutRef.current = setTimeout(() => {
+          setM3u8LoadFailed(true);
+          setIsM3u8Loading(false);
+        }, 15000);
+
         const handleCanPlay = () => {
           if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
           setIsM3u8Loading(false);
+          setM3u8LoadFailed(false);
         };
         video.addEventListener('canplay', handleCanPlay, { once: true });
         
         video.addEventListener('error', () => {
+           if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
            setM3u8LoadFailed(true);
            setIsM3u8Loading(false);
         }, { once: true });
