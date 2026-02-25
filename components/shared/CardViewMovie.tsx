@@ -100,12 +100,9 @@ const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => 
       </Dialog>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {items.map((item) => (
-          <Link
-            href={getLink(item)}
+          <div
             key={item._id}
-            prefetch={true}
-            onClick={handleClick}
-            className="group block bg-neutral-900 rounded-lg shadow-lg overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
+            className="group relative block bg-neutral-900 rounded-lg shadow-lg overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
           >
             <div className="relative aspect-[2/3] overflow-hidden">
               <Image
@@ -161,7 +158,7 @@ const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => 
                 </div>
               )}
               
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1 mt-2 relative z-10">
                 {item.category?.slice(0, 2).map((cat) => {
                   if (typeof cat === 'string') {
                     return (
@@ -180,7 +177,14 @@ const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => 
                 })}
               </div>
             </div>
-          </Link>
+            <Link
+              href={getLink(item)}
+              prefetch={true}
+              onClick={handleClick}
+              className="absolute inset-0 z-0"
+              aria-label={`Xem chi tiết phim ${item.name}`}
+            />
+          </div>
         ))}
       </div>
     </>
