@@ -67,6 +67,7 @@
     "hls.js": "^1.6.5",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.575.0",
+    "material-icons": "^1.13.14",
     "next": "16.1.6",
     "next-themes": "^0.3.0",
     "postcss": "8.4.30",
