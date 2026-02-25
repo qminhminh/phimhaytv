@@ -24,6 +24,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
   const router = useRouter();
   const [m3u8LoadFailed, setM3u8LoadFailed] = useState(false);
   const [isM3u8Loading, setIsM3u8Loading] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState(16/9);
   
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const artRef = useRef<Artplayer | null>(null);
@@ -255,6 +256,10 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     });
 
     art.on('video:loadedmetadata', () => {
+         if (art.video.videoWidth && art.video.videoHeight) {
+             setAspectRatio(art.video.videoWidth / art.video.videoHeight);
+         }
+
          try {
             const historyList: any[] = (art.storage.get('watch_history') as any[]) || [];
             if (historyList.length > 0 && historyList[0].movieSlug === movieSlug) {
@@ -278,7 +283,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
   return (
     <div className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20 focus:outline-none">
-      <div className={`relative ${useIframe ? 'aspect-[4/3] sm:aspect-video' : 'w-full aspect-[4/3] sm:aspect-video'}`}>
+      <div className={`relative ${useIframe ? 'aspect-video' : 'w-full'}`}>
         {useIframe ? (
           <iframe
             src={embedUrl}
@@ -290,7 +295,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
           />
         ) : (
-          <div ref={playerContainerRef} className="w-full h-full artplayer-app absolute inset-0 text-left [&_video]:object-fill"></div>
+          <div ref={playerContainerRef} style={{ aspectRatio: `${aspectRatio}` }} className="w-full artplayer-app text-left"></div>
         )}
 
         {/* Loading Indicator cho M3U8 */}
