@@ -215,7 +215,6 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       muted: false,
       autoplay: false,
       pip: true,
-      autoSize: true,
       autoMini: true,
       playbackRate: true,
       setting: true,
@@ -230,6 +229,41 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           loading: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" class="animate-spin"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
       },
     });
+
+    art.on('ready', () => {
+        try {
+            const historyList: any[] = (art.storage.get('watch_history') as any[]) || [];
+            const newHistory = historyList.filter(
+                (item: any) => item.movieSlug !== movieSlug 
+            );
+            
+            newHistory.unshift({
+                movieSlug,
+                episodeSlug,
+                title,
+                poster,
+                url: m3u8Url || videoUrl || '',
+                timestamp: Date.now(),
+                duration: art.duration || 0,
+            });
+
+            if (newHistory.length > 50) newHistory.pop();
+            art.storage.set('watch_history', newHistory);
+        } catch (e) {
+            console.error('Failed to save watch history');
+        }
+    });
+
+    art.on('video:loadedmetadata', () => {
+         try {
+            const historyList: any[] = (art.storage.get('watch_history') as any[]) || [];
+            if (historyList.length > 0 && historyList[0].movieSlug === movieSlug) {
+                historyList[0].duration = art.duration;
+                art.storage.set('watch_history', historyList);
+            }
+         } catch(e){}
+    });
+
     art.on('video:ended', () => {
         playNextEpisode();
     });
@@ -256,7 +290,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
           />
         ) : (
-          <div ref={playerContainerRef} className="w-full h-full artplayer-app absolute inset-0 text-left"></div>
+          <div ref={playerContainerRef} className="w-full h-full artplayer-app absolute inset-0 text-left [&_video]:object-fill"></div>
         )}
 
         {/* Loading Indicator cho M3U8 */}
