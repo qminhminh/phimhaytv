@@ -6,16 +6,6 @@ import Hls from 'hls.js';
 import Artplayer from 'artplayer';
 import { FastForward, StepBack, StepForward } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 interface MediaPlayerProps {
   embedUrl?: string;
@@ -32,17 +22,12 @@ interface MediaPlayerProps {
 
 export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl, movieId, episodeSlug, movieSlug, nextEpisodeSlug, previousEpisodeSlug }: MediaPlayerProps) {
   const router = useRouter();
-  const [showResumeDialog, setShowResumeDialog] = useState(false);
-  const [resumeTime, setResumeTime] = useState(0);
   const [m3u8LoadFailed, setM3u8LoadFailed] = useState(false);
   const [isM3u8Loading, setIsM3u8Loading] = useState(false);
   
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const artRef = useRef<Artplayer | null>(null);
-  const lastSaveTimestampRef = useRef(0);
   const m3u8TimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const progressKey = `movie-progress-${movieId}-${episodeSlug}`;
 
   // Logic quyết định sử dụng iframe hay video player
   const useIframe = !m3u8Url || m3u8LoadFailed ? !!embedUrl : false;
@@ -55,90 +40,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     }
   }, [m3u8Url]);
 
-  const saveProgress = useCallback((currentTime: number, duration: number) => {
-    if (movieId && episodeSlug && !useIframe) {
-      if (duration > 0 && currentTime / duration > 0.98) {
-        try {
-          localStorage.removeItem(progressKey);
-        } catch (error) {
-           console.error("Failed to remove progress from localStorage", error);
-        }
-      } else if (currentTime > 5) {
-        try {
-          const progress = {
-              currentTime: currentTime,
-              timestamp: Date.now(),
-          };
-          localStorage.setItem(progressKey, JSON.stringify(progress));
-          localStorage.setItem(`movie-latest-episode-${movieId}`, episodeSlug);
-          lastSaveTimestampRef.current = Date.now();
-        } catch (error) {
-          console.error("Failed to save progress to localStorage", error);
-        }
-      }
-    }
-  }, [movieId, episodeSlug, useIframe, progressKey]);
 
-  useEffect(() => {
-    if (useIframe || !movieId || !episodeSlug) {
-        setShowResumeDialog(false);
-        return;
-    };
-
-    let isMounted = true;
-
-    try {
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith(`movie-progress-${movieId}-`) && key !== progressKey) {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-    } catch (e) {
-        console.error("Cleanup failed", e);
-    }
-
-    try {
-        const savedProgress = localStorage.getItem(progressKey);
-        if (savedProgress) {
-            const { currentTime: savedTime } = JSON.parse(savedProgress);
-            if (isMounted && savedTime > 5) {
-                setResumeTime(savedTime);
-                setShowResumeDialog(true);
-            } else {
-                setShowResumeDialog(false);
-            }
-        } else {
-            setShowResumeDialog(false);
-        }
-    } catch (error) {
-        console.error("Failed to read progress from localStorage", error);
-        setShowResumeDialog(false);
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && artRef.current) {
-        saveProgress(artRef.current.currentTime, artRef.current.duration);
-      }
-    };
-    const handleBeforeUnload = () => {
-      if (artRef.current) saveProgress(artRef.current.currentTime, artRef.current.duration);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      isMounted = false;
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (artRef.current) {
-          saveProgress(artRef.current.currentTime, artRef.current.duration);
-      }
-    };
-  }, [progressKey, useIframe, movieId, episodeSlug, saveProgress]);
 
   const playNextEpisode = useCallback(() => {
     if (movieSlug && nextEpisodeSlug) {
@@ -152,26 +54,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
     }
   }, [movieSlug, previousEpisodeSlug, router]);
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
 
-  const handleResume = () => {
-    if (artRef.current) {
-        artRef.current.currentTime = resumeTime;
-        artRef.current.play();
-    }
-    setShowResumeDialog(false);
-  };
-
-  const handleDismissResume = () => {
-      if (movieId && episodeSlug) {
-          localStorage.removeItem(progressKey);
-      }
-      setShowResumeDialog(false);
-  };
 
   useEffect(() => {
     if (useIframe || (!m3u8Url && !videoUrl) || !playerContainerRef.current) return;
@@ -347,20 +230,8 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           loading: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" class="animate-spin"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
       },
     });
-
-    art.on('video:timeupdate', () => {
-        const now = Date.now();
-        if (now - lastSaveTimestampRef.current > 15000) {
-            saveProgress(art.currentTime, art.duration);
-        }
-    });
-
     art.on('video:ended', () => {
         playNextEpisode();
-    });
-
-    art.on('pause', () => {
-       saveProgress(art.currentTime, art.duration);
     });
 
     artRef.current = art;
@@ -369,25 +240,10 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       art.destroy(false);
       artRef.current = null;
     };
-  }, [useIframe, m3u8Url, videoUrl, poster, title, nextEpisodeSlug, previousEpisodeSlug, playNextEpisode, playPreviousEpisode, saveProgress]);
+  }, [useIframe, m3u8Url, videoUrl, poster, title, nextEpisodeSlug, previousEpisodeSlug, playNextEpisode, playPreviousEpisode]);
 
   return (
     <div className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20 focus:outline-none">
-      <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white w-11/12 max-w-md flex flex-col items-center">
-            <AlertDialogHeader className="w-full text-center">
-                <AlertDialogTitle className="text-center">Tiếp tục xem?</AlertDialogTitle>
-                <AlertDialogDescription className="text-zinc-400 text-center">
-                    Bạn đã xem đến {formatTime(resumeTime)}. Bạn có muốn xem tiếp không?
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex flex-row w-full justify-center gap-4 mt-4 sm:justify-center px-4">
-                <AlertDialogCancel className="mt-0 sm:mt-0 px-6 bg-zinc-800 hover:bg-zinc-700 hover:text-white border-zinc-600 w-1/2 rounded-full" onClick={handleDismissResume}>Coi từ đầu</AlertDialogCancel>
-                <AlertDialogAction className="bg-primary hover:bg-primary/90 text-black font-semibold w-1/2 rounded-full" onClick={handleResume}>Xem tiếp</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <div className={`relative ${useIframe ? 'aspect-[4/3] sm:aspect-video' : 'w-full aspect-[4/3] sm:aspect-video'}`}>
         {useIframe ? (
           <iframe
