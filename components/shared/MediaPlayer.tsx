@@ -2,18 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Volume2, VolumeX, Maximize, SkipForward, StepBack, StepForward, FastForward, RotateCcw, RotateCw, Settings, PictureInPicture2 } from 'lucide-react';
 import Hls from 'hls.js';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import Artplayer from 'artplayer';
+import { FastForward, StepBack, StepForward } from 'lucide-react';
+import { renderToString } from 'react-dom/server';
 
 interface MediaPlayerProps {
   embedUrl?: string;
@@ -30,640 +22,270 @@ interface MediaPlayerProps {
 
 export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl, movieId, episodeSlug, movieSlug, nextEpisodeSlug, previousEpisodeSlug }: MediaPlayerProps) {
   const router = useRouter();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [showResumeDialog, setShowResumeDialog] = useState(false);
-  const [resumeTime, setResumeTime] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [isPiPSupported, setIsPiPSupported] = useState(false);
-  const [isInPiP, setIsInPiP] = useState(false);
   const [m3u8LoadFailed, setM3u8LoadFailed] = useState(false);
   const [isM3u8Loading, setIsM3u8Loading] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [aspectRatio, setAspectRatio] = useState(16/9);
+  
   const playerContainerRef = useRef<HTMLDivElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
-  const lastSaveTimestampRef = useRef(0);
-  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const artRef = useRef<Artplayer | null>(null);
   const m3u8TimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const progressKey = `movie-progress-${movieId}-${episodeSlug}`;
 
   // Logic quyết định sử dụng iframe hay video player
   const useIframe = !m3u8Url || m3u8LoadFailed ? !!embedUrl : false;
 
-  // Function để retry M3U8
   const retryM3u8 = useCallback(() => {
     if (m3u8Url) {
       console.log('Retrying M3U8 load...');
       setM3u8LoadFailed(false);
-      setIsM3u8Loading(false);
+      setIsM3u8Loading(true);
     }
   }, [m3u8Url]);
 
-  // Effect xử lý M3U8 với timeout fallback
-  useEffect(() => {
-    // Reset states khi URL thay đổi
-    setM3u8LoadFailed(false);
-    setIsM3u8Loading(false);
-    
-    if (m3u8TimeoutRef.current) {
-      clearTimeout(m3u8TimeoutRef.current);
-      m3u8TimeoutRef.current = null;
-    }
 
-    if (m3u8Url && videoRef.current && !m3u8LoadFailed) {
-      setIsM3u8Loading(true);
-      const video = videoRef.current;
-      
-      // Timeout 5 giây để fallback sang embed
-      m3u8TimeoutRef.current = setTimeout(() => {
-        console.warn('M3U8 load timeout after 5 seconds, falling back to embed');
-        setM3u8LoadFailed(true);
-        setIsM3u8Loading(false);
-      }, 5000);
 
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          debug: false,
-          enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 90
-        });
-        
-        hlsRef.current = hls;
-        hls.loadSource(m3u8Url);
-        hls.attachMedia(video);
-        
-        // Success callback - M3U8 loaded successfully
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          console.log('M3U8 manifest parsed successfully');
-          if (m3u8TimeoutRef.current) {
-            clearTimeout(m3u8TimeoutRef.current);
-            m3u8TimeoutRef.current = null;
-          }
-          setIsM3u8Loading(false);
-        });
-
-        // Error callbacks
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error('HLS.js error:', data);
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.error('Fatal network error encountered, trying to fallback to embed');
-                setM3u8LoadFailed(true);
-                setIsM3u8Loading(false);
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.error('Fatal media error encountered, trying to fallback to embed');
-                setM3u8LoadFailed(true);
-                setIsM3u8Loading(false);
-                break;
-              default:
-                console.error('Fatal error, trying to fallback to embed');
-                setM3u8LoadFailed(true);
-                setIsM3u8Loading(false);
-                break;
-            }
-          }
-        });
-
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Safari native HLS support
-        video.src = m3u8Url;
-        
-        const handleCanPlay = () => {
-          console.log('Native HLS can play');
-          if (m3u8TimeoutRef.current) {
-            clearTimeout(m3u8TimeoutRef.current);
-            m3u8TimeoutRef.current = null;
-          }
-          setIsM3u8Loading(false);
-          video.removeEventListener('canplay', handleCanPlay);
-          video.removeEventListener('error', handleError);
-        };
-
-        const handleError = () => {
-          console.error('Native HLS error, falling back to embed');
-          setM3u8LoadFailed(true);
-          setIsM3u8Loading(false);
-          video.removeEventListener('canplay', handleCanPlay);
-          video.removeEventListener('error', handleError);
-        };
-
-        video.addEventListener('canplay', handleCanPlay);
-        video.addEventListener('error', handleError);
-      }
-
-      return () => {
-        if (m3u8TimeoutRef.current) {
-          clearTimeout(m3u8TimeoutRef.current);
-          m3u8TimeoutRef.current = null;
-        }
-        if (hlsRef.current) {
-          hlsRef.current.destroy();
-          hlsRef.current = null;
-        }
-      };
-    }
-  }, [m3u8Url, m3u8LoadFailed]);
-
-  // Helper to save progress reliably
-  const saveProgress = useCallback(() => {
-    if (videoRef.current && movieId && episodeSlug && !useIframe) {
-      const current = videoRef.current.currentTime;
-      const total = videoRef.current.duration;
-      
-      // Nếu đã xem hơn 98%, xóa progress
-      if (total > 0 && current / total > 0.98) {
-        try {
-          localStorage.removeItem(progressKey);
-        } catch (error) {
-           console.error("Failed to remove progress from localStorage", error);
-        }
-      } else if (current > 5) {
-        try {
-          const progress = {
-              currentTime: current,
-              timestamp: Date.now(),
-          };
-          localStorage.setItem(progressKey, JSON.stringify(progress));
-          localStorage.setItem(`movie-latest-episode-${movieId}`, episodeSlug);
-          lastSaveTimestampRef.current = Date.now();
-        } catch (error) {
-          console.error("Failed to save progress to localStorage", error);
-        }
-      }
-    }
-  }, [movieId, episodeSlug, useIframe, progressKey]);
-
-  useEffect(() => {
-    if (useIframe || !movieId || !episodeSlug) {
-        setShowResumeDialog(false);
-        return;
-    };
-
-    let isMounted = true;
-
-    // Cleanup old progress for the same movie to save localStorage memory
-    try {
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith(`movie-progress-${movieId}-`) && key !== progressKey) {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-    } catch (e) {
-        console.error("Cleanup failed", e);
-    }
-
-    try {
-        const savedProgress = localStorage.getItem(progressKey);
-        if (savedProgress) {
-            const { currentTime: savedTime } = JSON.parse(savedProgress);
-            // Lưu trữ dài hạn không giới hạn thời gian, chỉ hiển thị nếu time > 5s
-            if (isMounted && savedTime > 5) {
-                setResumeTime(savedTime);
-                setShowResumeDialog(true);
-            } else {
-                setShowResumeDialog(false);
-            }
-        } else {
-            setShowResumeDialog(false);
-        }
-    } catch (error) {
-        console.error("Failed to read progress from localStorage", error);
-        setShowResumeDialog(false);
-    }
-
-    // Add unmount and visibility change listeners
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        saveProgress();
-      }
-    };
-    const handleBeforeUnload = () => {
-      saveProgress();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      isMounted = false;
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      saveProgress(); // Ensure progress is saved when component unmounts
-    };
-  }, [progressKey, useIframe, movieId, episodeSlug, saveProgress]);
-
-  useEffect(() => {
-    setIsPiPSupported('pictureInPictureEnabled' in document && document.pictureInPictureEnabled);
-    const checkIsMobile = () => setIsMobile(window.innerWidth < 768);
-    const checkIsIOS = () => {
-      const userAgent = window.navigator.userAgent;
-      setIsIOS(/iPad|iPhone|iPod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
-    };
-    
-    checkIsMobile();
-    checkIsIOS();
-    window.addEventListener('resize', checkIsMobile);
-    return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
-  
-  useEffect(() => {
-    if (!isPiPSupported || useIframe || !videoRef.current) return;
-    const video = videoRef.current;
-
-    const onEnterPiP = () => setIsInPiP(true);
-    const onLeavePiP = () => setIsInPiP(false);
-
-    video.addEventListener('enterpictureinpicture', onEnterPiP);
-    video.addEventListener('leavepictureinpicture', onLeavePiP);
-
-    return () => {
-      video.removeEventListener('enterpictureinpicture', onEnterPiP);
-      video.removeEventListener('leavepictureinpicture', onLeavePiP);
-    };
-  }, [isPiPSupported, useIframe]);
-
-  // Effect để xử lý webkit fullscreen events cho iOS
-  useEffect(() => {
-    if (!isIOS || useIframe || !videoRef.current) return;
-    const video = videoRef.current;
-
-    const onEnterFullscreen = () => setIsFullscreen(true);
-    const onExitFullscreen = () => setIsFullscreen(false);
-
-    // Thêm event listeners cho webkit fullscreen events
-    video.addEventListener('webkitbeginfullscreen', onEnterFullscreen);
-    video.addEventListener('webkitendfullscreen', onExitFullscreen);
-
-    return () => {
-      video.removeEventListener('webkitbeginfullscreen', onEnterFullscreen);
-      video.removeEventListener('webkitendfullscreen', onExitFullscreen);
-    };
-  }, [isIOS, useIframe]);
-
-  const togglePlay = useCallback(() => {
-    if (videoRef.current && !useIframe) {
-      if (videoRef.current.paused) {
-        videoRef.current.play();
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  }, [useIframe]);
-
-  const toggleMute = useCallback(() => {
-    if (videoRef.current && !useIframe) {
-      const newMutedState = !videoRef.current.muted;
-      videoRef.current.muted = newMutedState;
-      setIsMuted(newMutedState);
-    }
-  }, [useIframe]);
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current && !useIframe) {
-      const currentTime = videoRef.current.currentTime;
-      setCurrentTime(currentTime);
-
-      if (movieId && episodeSlug) {
-        const now = Date.now();
-        // Lưu tiến trình mỗi 15 giây
-        if (now - lastSaveTimestampRef.current > 15000) {
-            saveProgress();
-        }
-      }
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current && !useIframe) {
-      setDuration(videoRef.current.duration);
-    }
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!useIframe) {
-      const newTime = parseFloat(e.target.value);
-      if (videoRef.current) {
-        videoRef.current.currentTime = newTime;
-        setCurrentTime(newTime);
-      }
-    }
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!useIframe) {
-      const newVolume = parseFloat(e.target.value);
-      if (videoRef.current) {
-        videoRef.current.volume = newVolume;
-        setVolume(newVolume);
-      }
-    }
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const handleResume = () => {
-    if (videoRef.current) {
-        videoRef.current.currentTime = resumeTime;
-        videoRef.current.play();
-        setIsPlaying(true);
-    }
-    setShowResumeDialog(false);
-  };
-
-  const handleDismissResume = () => {
-      if (movieId && episodeSlug) {
-          localStorage.removeItem(progressKey);
-      }
-      setShowResumeDialog(false);
-  };
-
-  const handleRewind10s = () => {
-    if (videoRef.current) videoRef.current.currentTime -= 10;
-  }
-
-  const handleForward10s = () => {
-    if (videoRef.current) videoRef.current.currentTime += 10;
-  }
-
-  
-  const handleVideoAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (useIframe || !videoRef.current) return;
-
-    if (tapTimeoutRef.current) {
-        clearTimeout(tapTimeoutRef.current);
-        tapTimeoutRef.current = null;
-
-        if (!isMobile) {
-            toggleFullscreen();
-            return;
-        }
-
-        const rect = e.currentTarget.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        
-        const oneThirdWidth = rect.width / 3;
-
-        if (clickX < oneThirdWidth) {
-            handleRewind10s();
-        } else if (clickX > oneThirdWidth * 2) {
-            handleForward10s();
-        } else {
-            togglePlay();
-        }
-    } else {
-        if (!isMobile) {
-            togglePlay();
-            setShowControls(true);
-        }
-
-        tapTimeoutRef.current = setTimeout(() => {
-            if (isMobile) {
-                setShowControls(prev => !prev);
-            }
-            tapTimeoutRef.current = null;
-        }, 300);
-    }
-  };
-
-  const handleMouseMove = () => {
-    setShowControls(true);
-  };
-
-  useEffect(() => {
-    if (showControls && isPlaying) {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
-    } else if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    return () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    };
-  }, [showControls, isPlaying]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      // Xử lý cả standard và webkit fullscreen events
-      const isInFullscreen = !!(
-        document.fullscreenElement || 
-        (document as any).webkitFullscreenElement || 
-        (document as any).mozFullScreenElement || 
-        (document as any).msFullscreenElement
-      );
-      setIsFullscreen(isInFullscreen);
-    };
-
-    // Add event listeners cho cả standard và webkit events
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-    };
-  }, []);
-
-  const playNextEpisode = () => {
+  const playNextEpisode = useCallback(() => {
     if (movieSlug && nextEpisodeSlug) {
         router.push(`/watch/${movieSlug}/${nextEpisodeSlug}`);
     }
-  };
+  }, [movieSlug, nextEpisodeSlug, router]);
 
-  const playPreviousEpisode = () => {
+  const playPreviousEpisode = useCallback(() => {
     if (movieSlug && previousEpisodeSlug) {
         router.push(`/watch/${movieSlug}/${previousEpisodeSlug}`);
     }
-  };
+  }, [movieSlug, previousEpisodeSlug, router]);
 
-  const handleSkipForward80s = () => {
-    if (videoRef.current) {
-        videoRef.current.currentTime += 80;
-    }
-  };
 
-  const handlePlaybackRateChange = (rate: number) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = rate;
-      setPlaybackRate(rate);
-      setShowSettingsMenu(false);
-    }
-  };
-
-  const togglePictureInPicture = async () => {
-    if (useIframe || !videoRef.current || !isPiPSupported) return;
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      } else {
-        await videoRef.current.requestPictureInPicture();
-      }
-    } catch (error) {
-      console.error("Failed to toggle Picture-in-Picture mode:", error);
-    }
-  };
-
-  const toggleFullscreen = useCallback(async () => {
-    try {
-      // Kiểm tra nếu đang trong fullscreen mode
-      const isCurrentlyFullscreen = !!(
-        document.fullscreenElement || 
-        (document as any).webkitFullscreenElement || 
-        (document as any).mozFullScreenElement || 
-        (document as any).msFullscreenElement
-      );
-
-      if (isCurrentlyFullscreen) {
-        // Exit fullscreen
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen();
-        } else if ((document as any).mozCancelFullScreen) {
-          (document as any).mozCancelFullScreen();
-        } else if ((document as any).msExitFullscreen) {
-          (document as any).msExitFullscreen();
-        }
-      } else {
-        // Enter fullscreen
-        if (useIframe && iframeRef.current) {
-          // Xử lý fullscreen cho iframe
-          if (iframeRef.current.requestFullscreen) {
-            await iframeRef.current.requestFullscreen();
-          } else if ((iframeRef.current as any).webkitRequestFullscreen) {
-            (iframeRef.current as any).webkitRequestFullscreen();
-          } else if ((iframeRef.current as any).mozRequestFullScreen) {
-            (iframeRef.current as any).mozRequestFullScreen();
-          } else if ((iframeRef.current as any).msRequestFullscreen) {
-            (iframeRef.current as any).msRequestFullscreen();
-          }
-        } else if (isIOS && videoRef.current && !useIframe) {
-          // Trên iOS, sử dụng webkitEnterFullscreen cho video element
-          if ((videoRef.current as any).webkitEnterFullscreen) {
-            (videoRef.current as any).webkitEnterFullscreen();
-          } else if ((videoRef.current as any).webkitRequestFullscreen) {
-            (videoRef.current as any).webkitRequestFullscreen();
-          }
-        } else if (playerContainerRef.current) {
-          // Desktop browsers - fullscreen container
-          if (playerContainerRef.current.requestFullscreen) {
-            await playerContainerRef.current.requestFullscreen();
-          } else if ((playerContainerRef.current as any).webkitRequestFullscreen) {
-            (playerContainerRef.current as any).webkitRequestFullscreen();
-          } else if ((playerContainerRef.current as any).mozRequestFullScreen) {
-            (playerContainerRef.current as any).mozRequestFullScreen();
-          } else if ((playerContainerRef.current as any).msRequestFullscreen) {
-            (playerContainerRef.current as any).msRequestFullscreen();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Lỗi khi chuyển đổi fullscreen:', error);
-      
-      // Fallback cho iOS nếu phương pháp chính không hoạt động
-      if (isIOS && videoRef.current && !useIframe) {
-        try {
-          if ((videoRef.current as any).webkitEnterFullscreen) {
-            (videoRef.current as any).webkitEnterFullscreen();
-          }
-        } catch (fallbackError) {
-          console.error('Lỗi fallback fullscreen trên iOS:', fallbackError);
-        }
-      }
-    }
-  }, [useIframe, isIOS]);
 
   useEffect(() => {
-    if (useIframe) return;
+    if (useIframe || (!m3u8Url && !videoUrl) || !playerContainerRef.current) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Dừng các hành động mặc định của trình duyệt cho các phím này khi trình phát được focus
-      if ([' ', 'ArrowLeft', 'ArrowRight', 'f', 'm'].includes(e.key)) {
-        e.preventDefault();
-      }
+    let hls: Hls | null = null;
+    setIsM3u8Loading(true);
 
-      switch (e.key) {
-        case ' ':
-          togglePlay();
-          break;
-        case 'ArrowRight':
-          if (videoRef.current) videoRef.current.currentTime += 10;
-          break;
-        case 'ArrowLeft':
-          if (videoRef.current) videoRef.current.currentTime -= 10;
-          break;
+    const playM3u8 = (video: HTMLVideoElement, url: string, art: Artplayer) => {
+      if (Hls.isSupported()) {
+        if (hls) hls.destroy();
+        
+        // Optimized HLS configuration
+        hls = new Hls({
+          debug: false,
+          enableWorker: true,
+          lowLatencyMode: false,
+          backBufferLength: 90,
+          manifestLoadingTimeOut: 10000,
+          manifestLoadingMaxRetry: 3,
+          levelLoadingTimeOut: 10000,
+          levelLoadingMaxRetry: 3,
+          fragLoadingTimeOut: 10000,
+          fragLoadingMaxRetry: 6,
+          startLevel: -1,
+        });
+        
+        if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+        
+        m3u8TimeoutRef.current = setTimeout(() => {
+          console.warn('M3U8 load timeout after 15 seconds, falling back to embed');
+          setM3u8LoadFailed(true);
+          setIsM3u8Loading(false);
+        }, 15000);
+
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+          setIsM3u8Loading(false);
+          setM3u8LoadFailed(false);
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.warn('Fatal network error, trying to recover...');
+                hls?.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.warn('Fatal media error, trying to recover...');
+                hls?.recoverMediaError();
+                break;
+              default:
+                console.error('Unrecoverable HLS error:', data);
+                if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+                setM3u8LoadFailed(true);
+                setIsM3u8Loading(false);
+                hls?.destroy();
+                break;
+            }
+          }
+        });
+
+        art.on('destroy', () => {
+            if (hls) hls.destroy();
+            if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        
+        if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+        m3u8TimeoutRef.current = setTimeout(() => {
+          setM3u8LoadFailed(true);
+          setIsM3u8Loading(false);
+        }, 15000);
+
+        const handleCanPlay = () => {
+          if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+          setIsM3u8Loading(false);
+          setM3u8LoadFailed(false);
+        };
+        video.addEventListener('canplay', handleCanPlay, { once: true });
+        
+        video.addEventListener('error', () => {
+           if (m3u8TimeoutRef.current) clearTimeout(m3u8TimeoutRef.current);
+           setM3u8LoadFailed(true);
+           setIsM3u8Loading(false);
+        }, { once: true });
       }
     };
-    
-    const playerEl = playerContainerRef.current;
-    if (playerEl) {
-      playerEl.addEventListener('keydown', handleKeyDown);
+
+    const controls: any[] = [
+      {
+        position: 'left',
+        html: '<svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" width="20" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8zm-1.1 11h-.85v-3.26l-1.01.31v-.69l1.77-.63h.09V16zm4.28-1.76c0 .32-.03.6-.1.82s-.17.42-.29.57-.28.26-.45.33-.37.1-.59.1-.41-.03-.59-.1-.33-.18-.46-.33-.23-.34-.3-.57-.11-.5-.11-.82v-.74c0-.32.03-.6.1-.82s.17-.42.29-.57.28-.26.45-.33.37-.1.59-.1.41.03.59.1.33.18.46.33.23.34.3.57.11.5.11.82v.74zm-.85-.86c0-.19-.01-.35-.04-.48s-.07-.23-.12-.31-.11-.14-.19-.17-.16-.05-.25-.05-.18.02-.25.05-.14.09-.19.17-.09.18-.12.31-.04.29-.04.48v.97c0 .19.01.35.04.48s.07.24.12.32.11.14.19.17.16.05.25.05.18-.02.25-.05.14-.09.19-.17.09-.19.11-.32.04-.29.04-.48v-.97z"/></svg>',
+        tooltip: 'Tua lại 10s',
+        index: 5, // Left of Play (Play is 10)
+        click: () => {
+          if (artRef.current) {
+            artRef.current.seek = artRef.current.currentTime - 10;
+          }
+        },
+      },
+      {
+        position: 'left',
+        html: '<svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" width="20" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2zm-7.46 2.22c-.06.05-.12.09-.2.12s-.17.04-.27.04c-.09 0-.17-.01-.25-.04s-.14-.06-.2-.11-.1-.1-.13-.17-.05-.14-.05-.22h-.85c0 .21.04.39.12.55s.19.28.33.38.29.18.46.23.35.07.53.07c.21 0 .41-.03.6-.08s.34-.14.48-.24.24-.24.32-.39.12-.33.12-.53c0-.23-.06-.44-.18-.61s-.3-.3-.54-.39c.1-.05.2-.1.28-.17s.15-.14.2-.22.1-.16.13-.25.04-.18.04-.27c0-.20.04-.37-.11-.53s-.17-.28-.3-.38-.28-.18-.46-.23-.37-.08-.59-.08c-.19 0-.38.03-.54.08s-.32.13-.44.23-.23.22-.3.37-.11.3-.11.48h.85c0-.07.02-.14.05-.2s.07-.11.12-.15.11-.07.18-.1.14-.03.22-.03c.1 0 .18.01.25.04s.13.06.18.11.08.11.11.17.04.14.04.22c0 .18-.05.32-.16.43s-.26.16-.48.16h-.43v.66h.45c.11 0 .2.01.29.04s.16.06.22.11.11.12.14.2.05.18.05.29c0 .09-.01.17-.04.24s-.08.11-.13.17zm3.9-3.44c-.18-.07-.37-.1-.59-.1s-.41.03-.59.1-.33.18-.45.33-.23.34-.29.57-.1.5-.1.82v.74c0 .32.04.6.11.82s.17.42.3.57.28.26.46.33.37.1.59.1.41-.03.59-.1.33-.18.45-.33.22-.34.29-.57.1-.5.1-.82v-.74c0-.32-.04-.6-.11-.82s-.17-.42-.3-.57-.28-.26-.46-.33zm.01 2.57c0 .19-.01.35-.04.48s-.06.24-.11.32-.11.14-.19.17-.16.05-.25.05-.18-.02-.25-.05-.14-.09-.19-.17-.09-.19-.12-.32-.04-.29-.04-.48v-.97c0-.19.01-.35.04-.48s.06-.23.12-.31.11-.14.19-.17.16-.05.25-.05.18.02.25.05.14.09.19.17.09.18.12.31.04.29.04.48v.97z"/></svg>',
+        tooltip: 'Tua tới 10s',
+        index: 15, // Right of Play (Play is 10)
+        click: () => {
+          if (artRef.current) {
+            artRef.current.seek = artRef.current.currentTime + 10;
+          }
+        },
+      },
+      {
+        position: 'left',
+        html: renderToString(<FastForward size={20} /> as any),
+        tooltip: 'Tua tới 80s',
+        index: 25, // Right of Volume (Volume is 20)
+        click: () => {
+          if (artRef.current) {
+            artRef.current.currentTime += 80;
+          }
+        },
+      }
+    ];
+    if (previousEpisodeSlug) {
+        controls.push({
+            position: 'right',
+            html: renderToString(<StepBack size={20} /> as any),
+            tooltip: 'Tập trước',
+            index: 10,
+            click: playPreviousEpisode,
+        });
+    }
+    if (nextEpisodeSlug) {
+        controls.push({
+            position: 'right',
+            html: renderToString(<StepForward size={20} /> as any),
+            tooltip: 'Tập tiếp theo',
+            index: 20,
+            click: playNextEpisode,
+        });
     }
 
+    const art = new Artplayer({
+      container: playerContainerRef.current,
+      url: m3u8Url || videoUrl || '',
+      type: m3u8Url ? 'm3u8' : 'mp4',
+      customType: {
+        m3u8: playM3u8,
+      },
+      poster: poster || '',
+      volume: 1,
+      isLive: false,
+      muted: false,
+      autoplay: false,
+      pip: true,
+      autoMini: true,
+      playbackRate: true,
+      setting: true,
+      hotkey: true,
+      autoPlayback: true,
+      fullscreen: true,
+      fullscreenWeb: true,
+      miniProgressBar: true,
+      theme: '#FFD700',
+      controls: controls,
+      icons: {
+          loading: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" class="animate-spin"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      },
+    });
+
+    art.on('ready', () => {
+        try {
+            const historyList: any[] = (art.storage.get('watch_history') as any[]) || [];
+            const newHistory = historyList.filter(
+                (item: any) => item.movieSlug !== movieSlug 
+            );
+            
+            newHistory.unshift({
+                movieSlug,
+                episodeSlug,
+                title,
+                poster,
+                url: m3u8Url || videoUrl || '',
+                timestamp: Date.now(),
+                duration: art.duration || 0,
+            });
+
+            if (newHistory.length > 50) newHistory.pop();
+            art.storage.set('watch_history', newHistory);
+        } catch (e) {
+            console.error('Failed to save watch history');
+        }
+    });
+
+    art.on('video:loadedmetadata', () => {
+         if (art.video.videoWidth && art.video.videoHeight) {
+             setAspectRatio(art.video.videoWidth / art.video.videoHeight);
+         }
+
+         try {
+            const historyList: any[] = (art.storage.get('watch_history') as any[]) || [];
+            if (historyList.length > 0 && historyList[0].movieSlug === movieSlug) {
+                historyList[0].duration = art.duration;
+                art.storage.set('watch_history', historyList);
+            }
+         } catch(e){}
+    });
+
+    art.on('video:ended', () => {
+        playNextEpisode();
+    });
+
+    artRef.current = art;
+
     return () => {
-      if (playerEl) {
-        playerEl.removeEventListener('keydown', handleKeyDown);
-      }
+      art.destroy(false);
+      artRef.current = null;
     };
-  }, [useIframe, togglePlay]);
+  }, [useIframe, m3u8Url, videoUrl, poster, title, nextEpisodeSlug, previousEpisodeSlug, playNextEpisode, playPreviousEpisode, episodeSlug, movieSlug]);
 
   return (
-    <div 
-      ref={playerContainerRef} 
-      className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20 focus:outline-none"
-      tabIndex={0}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => { if (isPlaying) setShowControls(false) }}
-    >
-      <AlertDialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
-        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white w-11/12 max-w-md">
-            <AlertDialogHeader>
-                <AlertDialogTitle>Tiếp tục xem?</AlertDialogTitle>
-                <AlertDialogDescription className="text-zinc-400">
-                    Bạn đã xem đến {formatTime(resumeTime)}. Bạn có muốn xem tiếp từ đây không hay muốn coi lại từ đầu?
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
-                <AlertDialogCancel className="mt-0 sm:mt-0" onClick={handleDismissResume}>Coi lại từ đầu</AlertDialogCancel>
-                <AlertDialogAction onClick={handleResume}>Xem tiếp</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Video Element */}
-      <div 
-        className={`relative ${isFullscreen ? 'w-full h-full' : 'aspect-[4/3] sm:aspect-video'}`}
-        onClick={handleVideoAreaClick}
-      >
+    <div className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20 focus:outline-none">
+      <div className={`relative ${useIframe ? 'aspect-video' : 'w-full'}`}>
         {useIframe ? (
           <iframe
-            ref={iframeRef}
             src={embedUrl}
             title={title}
             className="w-full h-full"
@@ -672,51 +294,13 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
           />
-        ) : videoUrl || m3u8Url ? (
-          <video
-            ref={videoRef}
-            className="w-full h-full object-contain"
-            playsInline
-            {...(isIOS && { webkitPlaysinline: true })}
-            controls={false}
-            preload="metadata"
-            poster={poster}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => {
-              setIsPlaying(false);
-              saveProgress(); // Luôn lưu khi pause
-            }}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onVolumeChange={() => {
-              if (videoRef.current) {
-                setIsMuted(videoRef.current.muted);
-                setVolume(videoRef.current.volume);
-              }
-            }}
-            onEnded={playNextEpisode}
-            {...(isIOS && {
-              onWebkitEnterFullscreen: () => setIsFullscreen(true),
-              onWebkitExitFullscreen: () => setIsFullscreen(false)
-            })}
-          >
-            {videoUrl && <source src={videoUrl} type="video/mp4" />}
-            {m3u8Url && <source src={m3u8Url} type="application/x-mpegURL" />}
-          </video>
         ) : (
-          <div
-            className="w-full h-full bg-cover bg-center flex items-center justify-center"
-            style={{ backgroundImage: poster ? `url(${poster})` : 'none', backgroundColor: '#000' }}
-          >
-            <div className="bg-black/50 rounded-full p-4">
-              <Play className="w-16 h-16 text-[#FFD700]" fill="currentColor" />
-            </div>
-          </div>
+          <div ref={playerContainerRef} style={{ aspectRatio: `${aspectRatio}` }} className="w-full artplayer-app text-left"></div>
         )}
 
         {/* Loading Indicator cho M3U8 */}
-        {isM3u8Loading && (
-          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+        {isM3u8Loading && !useIframe && (
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center pointer-events-none z-10">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
             <p className="text-white text-sm">Đang tải video M3U8...</p>
           </div>
@@ -724,7 +308,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
 
         {/* Fallback Notification */}
         {m3u8LoadFailed && embedUrl && (
-          <div className="absolute top-4 left-4 right-4 bg-yellow-600/90 text-white p-3 rounded-lg text-sm flex items-center justify-between">
+          <div className="absolute top-4 left-4 right-4 bg-yellow-600/90 text-white p-3 rounded-lg text-sm flex items-center justify-between z-50">
             <span>⚠️ Không thể tải video M3U8, đã chuyển sang nguồn embed</span>
             <button 
               onClick={retryM3u8}
@@ -734,109 +318,6 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
             </button>
           </div>
         )}
-
-        {/* Custom Controls */}
-        <div 
-          className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}
-        >
-          {/* Top controls could go here if needed */}
-          <div></div>
-          {/* Bottom controls */}
-          <div 
-            className="p-2 sm:p-4 bg-gradient-to-t from-black/70 to-transparent pointer-events-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Progress Bar */}
-            <input
-              type="range"
-              min="0"
-              max={duration}
-              value={currentTime}
-              onChange={handleSeek}
-              className="w-full custom-progress"
-              style={{ '--progress-percent': `${duration > 0 ? (currentTime / duration) * 100 : 0}%` } as React.CSSProperties}
-            />
-            <div className="flex items-center justify-between text-white mt-2">
-              <div className="flex items-center space-x-1 sm:space-x-4">
-                <button onClick={handleRewind10s} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Tua lại 10 giây">
-                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button onClick={togglePlay} className="focus:outline-none">
-                  {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
-                </button>
-                <button onClick={handleForward10s} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Tua tới 10 giây">
-                    <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button onClick={handleSkipForward80s} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Bỏ qua 80 giây">
-                    <FastForward className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button onClick={toggleMute} className="focus:outline-none">
-                  {isMuted ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
-                </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolumeChange}
-                  className="w-24 custom-progress hidden sm:block"
-                  style={{ '--progress-percent': `${isMuted ? 0 : volume * 100}%` } as React.CSSProperties}
-                />
-                <span className="text-xs sm:text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
-              </div>
-              <div className="flex items-center space-x-1 sm:space-x-4">
-                {previousEpisodeSlug && (
-                    <button onClick={playPreviousEpisode} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Tập trước">
-                        <StepBack className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                )}
-                {nextEpisodeSlug && (
-                    <button onClick={playNextEpisode} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Tập tiếp theo">
-                        <StepForward className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                )}
-                
-                {/* Picture-in-Picture Button */}
-                {!useIframe && isPiPSupported && (
-                  <button onClick={togglePictureInPicture} className={`focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10 ${isInPiP ? 'text-primary' : ''}`} title="Hình trong hình">
-                    <PictureInPicture2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                )}
-
-                {/* Settings Button */}
-                {!useIframe && (
-                    <div className="relative">
-                        <button onClick={() => setShowSettingsMenu(prev => !prev)} className="focus:outline-none p-1 sm:p-2 rounded-full hover:bg-white/10" title="Cài đặt">
-                            <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
-                        {showSettingsMenu && (
-                             <div 
-                                className="absolute bottom-full right-0 mb-2 bg-black/80 rounded-lg p-2 flex flex-col items-start w-32"
-                                onMouseLeave={() => setShowSettingsMenu(false)}
-                            >
-                                <span className="text-xs text-gray-400 px-2 pb-1 w-full text-center">Tốc độ</span>
-                                {[0.5, 1, 1.5, 2].map((rate) => (
-                                    <button
-                                        key={rate}
-                                        onClick={() => handlePlaybackRateChange(rate)}
-                                        className={`w-full text-left px-2 py-1 rounded text-sm whitespace-nowrap ${playbackRate === rate ? 'bg-primary text-white font-bold' : 'hover:bg-white/20'}`}
-                                    >
-                                        {rate === 1 ? 'Bình thường' : `${rate}x`}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <button onClick={toggleFullscreen} className="focus:outline-none">
-                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

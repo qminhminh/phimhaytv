@@ -8,15 +8,16 @@ import CardViewMovie from '@/components/shared/CardViewMovie';
 import SearchWithSuggestions from '@/components/shared/SearchWithSuggestions';
 
 interface SearchPageProps {
-  searchParams: {
+  searchParams: Promise<{
     q?: string;
     page?: string;
-  };
+  }>;
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const keyword = searchParams.q || '';
-  const page = parseInt(searchParams.page || '1');
+  const resolvedSearchParams = await searchParams;
+  const keyword = resolvedSearchParams.q || '';
+  const page = parseInt(resolvedSearchParams.page || '1');
   
   // Chỉ tìm kiếm khi có từ khóa
   const searchResults = keyword 

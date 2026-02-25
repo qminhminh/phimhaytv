@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import Navbar from '../components/ui/Navbar';
 import Footer from '../components/ui/Footer';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import QueryProvider from '@/components/providers/QueryProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,11 +21,13 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className}>
-        <div className="min-h-screen bg-[#121212] text-[#EAEAEA]">
-          <Navbar />
-          <main className="pt-16">{children}</main>
-          <Footer />
-        </div>
+        <QueryProvider>
+          <div className="min-h-screen bg-[#121212] text-[#EAEAEA]">
+            <Navbar />
+            <main className="pt-16">{children}</main>
+            <Footer />
+          </div>
+        </QueryProvider>
         <SpeedInsights />
       </body>
     </html>

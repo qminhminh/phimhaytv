@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Bell, User, Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import WatchHistoryDropdown from '../shared/WatchHistoryDropdown';
 
 
 const mainNavItems = [
@@ -77,6 +78,9 @@ export default function Navbar() {
             >
               <Search size={20} />
             </Link>
+
+            {/* Watch History */}
+            <WatchHistoryDropdown />
 
             {/* Notifications */}
             {/* <button className="text-[#EAEAEA] hover:text-[#FFD700] transition-colors">
