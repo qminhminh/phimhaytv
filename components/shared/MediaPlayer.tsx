@@ -279,7 +279,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       art.destroy(false);
       artRef.current = null;
     };
-  }, [useIframe, m3u8Url, videoUrl, poster, title, nextEpisodeSlug, previousEpisodeSlug, playNextEpisode, playPreviousEpisode]);
+  }, [useIframe, m3u8Url, videoUrl, poster, title, nextEpisodeSlug, previousEpisodeSlug, playNextEpisode, playPreviousEpisode, episodeSlug, movieSlug]);
 
   return (
     <div className="relative w-full bg-[#121212] rounded-lg overflow-hidden shadow-2xl shadow-primary/20 focus:outline-none">
