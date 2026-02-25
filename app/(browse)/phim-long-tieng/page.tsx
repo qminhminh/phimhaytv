@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 interface LongTiengPageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     category?: string;
     country?: string;
@@ -20,12 +20,13 @@ interface LongTiengPageProps {
     sort_field?: 'modified.time' | '_id' | 'year';
     sort_type?: 'desc' | 'asc';
     sort_lang?: 'vietsub' | 'thuyet-minh' | 'long-tieng';
-  };
+  }>;
 }
 
 export default async function LongTiengPage({ searchParams }: LongTiengPageProps) {
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
+  const { category, country, year, sort_field, sort_type, sort_lang } = resolvedSearchParams;
   
   const [longTiengData, categories, countries] = await Promise.all([
     getMoviesList('phim-long-tieng', {
@@ -51,7 +52,7 @@ export default async function LongTiengPage({ searchParams }: LongTiengPageProps
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   
   const createPaginationBaseUrl = () => {
-    const params = new URLSearchParams(searchParams as any);
+    const params = new URLSearchParams(resolvedSearchParams as any);
     params.delete('page');
     return `/phim-long-tieng?${params.toString()}`;
   };

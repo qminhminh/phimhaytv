@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 interface VietSubPageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     category?: string;
     country?: string;
@@ -20,12 +20,13 @@ interface VietSubPageProps {
     sort_field?: 'modified.time' | '_id' | 'year';
     sort_type?: 'desc' | 'asc';
     sort_lang?: 'vietsub' | 'thuyet-minh' | 'long-tieng';
-  };
+  }>;
 }
 
 export default async function VietSubPage({ searchParams }: VietSubPageProps) {
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
+  const { category, country, year, sort_field, sort_type, sort_lang } = resolvedSearchParams;
 
   const [vietsubData, categories, countries] = await Promise.all([
     getMoviesList('phim-vietsub', {
@@ -51,7 +52,7 @@ export default async function VietSubPage({ searchParams }: VietSubPageProps) {
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   
   const createPaginationBaseUrl = () => {
-    const params = new URLSearchParams(searchParams as any);
+    const params = new URLSearchParams(resolvedSearchParams as any);
     params.delete('page');
     return `/vietsub?${params.toString()}`;
   };

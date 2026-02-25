@@ -6,9 +6,9 @@ import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface LatestMoviesPageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
-  };
+  }>;
 }
 
 export const metadata: Metadata = {
@@ -17,7 +17,8 @@ export const metadata: Metadata = {
 };
 
 export default async function LatestMoviesPage({ searchParams }: LatestMoviesPageProps) {
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
 
   const latestMoviesData = await getLatestMovies({ 
     page, 

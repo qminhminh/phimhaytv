@@ -7,7 +7,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface PhimLePageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     category?: string;
     country?: string;
@@ -15,16 +15,17 @@ interface PhimLePageProps {
     sort_field?: string;
     sort_type?: string;
     sort_lang?: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({ searchParams }: PhimLePageProps): Promise<Metadata> {
+    const resolvedSearchParams = await searchParams;
     // Gọi API một lần để lấy dữ liệu, bao gồm cả thông tin SEO
     const data = await getMoviesList('phim-le', {
-        page: searchParams.page ? parseInt(searchParams.page) : 1,
-        category: searchParams.category,
-        country: searchParams.country,
-        year: searchParams.year,
+        page: resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1,
+        category: resolvedSearchParams.category,
+        country: resolvedSearchParams.country,
+        year: resolvedSearchParams.year,
     });
 
     const seoData = data?.data?.seoOnPage;
@@ -44,13 +45,14 @@ export async function generateMetadata({ searchParams }: PhimLePageProps): Promi
 }
 
 export default async function PhimLePage({ searchParams }: PhimLePageProps) {
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const category = searchParams.category;
-  const country = searchParams.country;
-  const year = searchParams.year;
-  const sortField = (searchParams.sort_field as 'modified.time' | '_id' | 'year') || 'modified.time';
-  const sortType = (searchParams.sort_type as 'desc' | 'asc') || 'desc';
-  const sortLang = (searchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
+  const category = resolvedSearchParams.category;
+  const country = resolvedSearchParams.country;
+  const year = resolvedSearchParams.year;
+  const sortField = (resolvedSearchParams.sort_field as 'modified.time' | '_id' | 'year') || 'modified.time';
+  const sortType = (resolvedSearchParams.sort_type as 'desc' | 'asc') || 'desc';
+  const sortLang = (resolvedSearchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
   
   const [singleMoviesData, categories, countries] = await Promise.all([
     getMoviesList('phim-le', {

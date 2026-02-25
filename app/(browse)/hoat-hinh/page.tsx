@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 interface HoatHinhPageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     category?: string;
     country?: string;
@@ -20,17 +20,18 @@ interface HoatHinhPageProps {
     sort_field?: string;
     sort_type?: string;
     sort_lang?: string;
-  };
+  }>;
 }
 
 export default async function HoatHinhPage({ searchParams }: HoatHinhPageProps) {
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const category = searchParams.category;
-  const country = searchParams.country;
-  const year = searchParams.year;
-  const sortField = (searchParams.sort_field as 'modified.time' | '_id' | 'year') || 'modified.time';
-  const sortType = (searchParams.sort_type as 'desc' | 'asc') || 'desc';
-  const sortLang = (searchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
+  const category = resolvedSearchParams.category;
+  const country = resolvedSearchParams.country;
+  const year = resolvedSearchParams.year;
+  const sortField = (resolvedSearchParams.sort_field as 'modified.time' | '_id' | 'year') || 'modified.time';
+  const sortType = (resolvedSearchParams.sort_type as 'desc' | 'asc') || 'desc';
+  const sortLang = (resolvedSearchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
   
   const [cartoonsData, categories, countries] = await Promise.all([
     getMoviesList('hoat-hinh', {

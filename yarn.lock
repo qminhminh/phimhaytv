@@ -1436,6 +1436,13 @@ arraybuffer.prototype.slice@^1.0.4:
     get-intrinsic "^1.2.6"
     is-array-buffer "^3.0.4"
 
+artplayer@^5.3.0:
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/artplayer/-/artplayer-5.3.0.tgz#ecb011d1eed008ee806e2a1850026ee0030fd85f"
+  integrity sha512-yExO39MpEg4P+bxgChxx1eJfiUPE4q1QQRLCmqGhlsj+ANuaoEkR8hF93LdI5ZyrAcIbJkuEndxEiUoKobifDw==
+  dependencies:
+    option-validator "^2.0.6"
+
 ast-types-flow@^0.0.8:
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/ast-types-flow/-/ast-types-flow-0.0.8.tgz#0a85e1c92695769ac13a428bb653e7538bea27d6"
@@ -2912,6 +2919,11 @@ keyv@^4.5.3:
   dependencies:
     json-buffer "3.0.1"
 
+kind-of@^6.0.3:
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/kind-of/-/kind-of-6.0.3.tgz#07c05034a6c349fa06e24fa35aa76db4580ce4dd"
+  integrity sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==
+
 language-subtag-registry@^0.3.20:
   version "0.3.23"
   resolved "https://registry.yarnpkg.com/language-subtag-registry/-/language-subtag-registry-0.3.23.tgz#23529e04d9e3b74679d70142df3fd2eb6ec572e7"
@@ -3183,6 +3195,13 @@ once@^1.3.0:
   integrity sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==
   dependencies:
     wrappy "1"
+
+option-validator@^2.0.6:
+  version "2.0.6"
+  resolved "https://registry.yarnpkg.com/option-validator/-/option-validator-2.0.6.tgz#a314dae65e26db5f948ef0ff96fc88f18bb76ed6"
+  integrity sha512-tmZDan2LRIRQyhUGvkff68/O0R8UmF+Btmiiz0SmSw2ng3CfPZB9wJlIjHpe/MKUZqyIZkVIXCrwr1tIN+0Dzg==
+  dependencies:
+    kind-of "^6.0.3"
 
 optionator@^0.9.3:
   version "0.9.4"

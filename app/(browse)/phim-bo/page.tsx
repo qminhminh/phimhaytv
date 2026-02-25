@@ -12,19 +12,20 @@ export const metadata: Metadata = {
 };
 
 interface PhimBoPageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     category?: string;
     country?: string;
     year?: string;
     sort_field?: 'modified.time' | '_id' | 'year';
     sort_type?: 'desc' | 'asc';
-  };
+  }>;
 }
 
 export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const { category, country, year, sort_field, sort_type } = searchParams;
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
+  const { category, country, year, sort_field, sort_type } = resolvedSearchParams;
   
   const [tvSeriesData, categories, countries] = await Promise.all([
     getMoviesList('phim-bo', {
@@ -49,7 +50,7 @@ export default async function PhimBoPage({ searchParams }: PhimBoPageProps) {
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   
   const createPaginationBaseUrl = () => {
-    const params = new URLSearchParams(searchParams as any);
+    const params = new URLSearchParams(resolvedSearchParams as any);
     params.delete('page');
     return `/phim-bo?${params.toString()}`;
   };

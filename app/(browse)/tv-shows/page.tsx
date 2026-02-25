@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 interface TVShowsPageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     sort_field?: 'modified.time' | '_id' | 'year';
     sort_type?: 'desc' | 'asc';
@@ -20,12 +20,13 @@ interface TVShowsPageProps {
     country?: string;
     year?: string;
     category?: string;
-  };
+  }>;
 }
 
 export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const { category, country, year, sort_field, sort_type, sort_lang } = searchParams;
+  const resolvedSearchParams = await searchParams;
+  const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
+  const { category, country, year, sort_field, sort_type, sort_lang } = resolvedSearchParams;
 
   const [tvShowsData, categories, countries] = await Promise.all([
     getTVSeries({
@@ -47,7 +48,7 @@ export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
   const imageDomain = tvShowsData.data.APP_DOMAIN_CDN_IMAGE;
   
   const createPaginationUrl = () => {
-    const params = new URLSearchParams(searchParams as any);
+    const params = new URLSearchParams(resolvedSearchParams as any);
     params.delete('page');
     return `/tv-shows?${params.toString()}`;
   };
