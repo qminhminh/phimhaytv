@@ -1,10 +1,9 @@
-import { Suspense } from 'react';
-import { getTVSeries, getCountries, getCategories } from '@/lib/api';
-import CardViewMovie from '@/components/shared/CardViewMovie';
-import { Pagination } from '@/components/ui/pagination';
 import { Metadata } from 'next';
+import { getCategories, getCountries } from '@/lib/api';
 import FilterBrowse from '@/components/shared/FilterBrowse';
-import { Skeleton } from '@/components/ui/skeleton';
+import FilteredMoviesList from '@/components/movies/FilteredMoviesList';
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
+import { fetchMoviesList } from '@/app/actions/movies';
 
 export const metadata: Metadata = {
   title: 'Phim Bộ | TV Shows - PhimHayTV',
@@ -28,30 +27,25 @@ export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
   const page = resolvedSearchParams.page ? parseInt(resolvedSearchParams.page) : 1;
   const { category, country, year, sort_field, sort_type, sort_lang } = resolvedSearchParams;
 
-  const [tvShowsData, categories, countries] = await Promise.all([
-    getTVSeries({
+  const moviesOptions = {
       page,
-      filterCategory: category ? [category] : undefined,
-      filterCountry: country ? [country] : undefined,
-      filterYear: year ? [year] : undefined,
-      sortField: sort_field || 'modified.time',
-      sortType: sort_type || 'desc',
-      sortLang: sort_lang,
-      limit: 24
-    }),
+      category,
+      country,
+      year: year ? parseInt(year) : undefined,
+      sort_field: sort_field || 'modified.time',
+      sort_type: sort_type || 'desc',
+      sort_lang: sort_lang,
+      limit: 24,
+  };
+
+  const [moviesData, categories, countries] = await Promise.all([
+    fetchMoviesList('tv-shows', moviesOptions),
     getCategories(),
     getCountries()
   ]);
   
-  const movies = tvShowsData.data.items || [];
-  const totalPages = tvShowsData.data.params.pagination.totalPages || 1;
-  const imageDomain = tvShowsData.data.APP_DOMAIN_CDN_IMAGE;
-  
-  const createPaginationUrl = () => {
-    const params = new URLSearchParams(resolvedSearchParams as any);
-    params.delete('page');
-    return `/tv-shows?${params.toString()}`;
-  };
+  const queryClient = new QueryClient();
+  queryClient.setQueryData(['movies-list', 'tv-shows', moviesOptions], moviesData);
   
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
@@ -59,7 +53,10 @@ export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
   return (
     <main className="min-h-screen bg-[#121212] py-8">
       <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold text-[#EAEAEA] mb-6">Phim Bộ / TV Shows</h1>
+        <div className="mb-6">
+            <h1 className="text-3xl font-bold text-[#EAEAEA] mb-2">{moviesData.data.titlePage}</h1>
+            <p className="text-gray-400">{moviesData.data.seoOnPage.descriptionHead}</p>
+        </div>
         
         <FilterBrowse
           baseUrl="/tv-shows"
@@ -74,37 +71,20 @@ export default async function TVShowsPage({ searchParams }: TVShowsPageProps) {
           years={years}
         />
         
-        <Suspense fallback={<TVSeriesListSkeleton />}>
-          <CardViewMovie items={movies as any} imageDomain={imageDomain} />
-        </Suspense>
-        
-        {totalPages > 1 && (
-          <div className="mt-8 flex justify-center">
-            <Pagination 
-              currentPage={page} 
-              totalPages={totalPages} 
-              baseUrl={createPaginationUrl()} 
+        <HydrationBoundary state={dehydrate(queryClient)}>
+            <FilteredMoviesList 
+                type="tv-shows"
+                baseUrl="/tv-shows"
+                page={page}
+                category={category}
+                country={country}
+                year={year}
+                sortField={sort_field}
+                sortType={sort_type}
+                sortLang={sort_lang}
             />
-          </div>
-        )}
+        </HydrationBoundary>
       </div>
     </main>
   );
 }
-
-function TVSeriesListSkeleton() {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {Array.from({ length: 12 }).map((_, index) => (
-        <div key={index} className="bg-neutral-900 rounded-lg overflow-hidden">
-          <Skeleton className="aspect-[2/3] w-full" />
-          <div className="p-3">
-            <Skeleton className="h-5 w-full mb-2" />
-            <Skeleton className="h-4 w-3/4 mb-2" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-} 

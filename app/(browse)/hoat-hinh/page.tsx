@@ -1,10 +1,9 @@
-import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { getMoviesList, getCategories, getCountries } from '@/lib/api';
-import CardViewMovie from '@/components/shared/CardViewMovie';
+import { getCategories, getCountries } from '@/lib/api';
 import FilterBrowse from '@/components/shared/FilterBrowse';
-import { Pagination } from '@/components/ui/pagination';
-import { Skeleton } from '@/components/ui/skeleton';
+import FilteredMoviesList from '@/components/movies/FilteredMoviesList';
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
+import { fetchMoviesList } from '@/app/actions/movies';
 
 export const metadata: Metadata = {
   title: 'Phim Hoạt Hình | Phim Hay TV',
@@ -33,47 +32,34 @@ export default async function HoatHinhPage({ searchParams }: HoatHinhPageProps) 
   const sortType = (resolvedSearchParams.sort_type as 'desc' | 'asc') || 'desc';
   const sortLang = (resolvedSearchParams.sort_lang as 'vietsub' | 'thuyet-minh' | 'long-tieng') || undefined;
   
-  const [cartoonsData, categories, countries] = await Promise.all([
-    getMoviesList('hoat-hinh', {
+  const moviesOptions = {
       page,
       category,
       country,
-      year,
+      year: year ? parseInt(year) : undefined,
       sort_field: sortField,
       sort_type: sortType,
       sort_lang: sortLang,
       limit: 24,
-    }),
+  };
+
+  const [moviesData, categories, countries] = await Promise.all([
+    fetchMoviesList('hoat-hinh', moviesOptions),
     getCategories(),
     getCountries(),
   ]);
   
-  const items = cartoonsData.data.items;
-  const pagination = cartoonsData.data.params.pagination;
-  const totalPages = pagination.totalPages;
-  const imageDomain = cartoonsData.data.APP_DOMAIN_CDN_IMAGE;
+  const queryClient = new QueryClient();
+  queryClient.setQueryData(['movies-list', 'hoat-hinh', moviesOptions], moviesData);
   
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   
-  const createPaginationBaseUrl = () => {
-    const url = new URL('/hoat-hinh', 'https://phimhaytv.com');
-    
-    if (category) url.searchParams.set('category', category);
-    if (country) url.searchParams.set('country', country);
-    if (year) url.searchParams.set('year', year);
-    if (sortField) url.searchParams.set('sort_field', sortField);
-    if (sortType) url.searchParams.set('sort_type', sortType);
-    if (sortLang) url.searchParams.set('sort_lang', sortLang);
-    
-    return url.pathname + url.search;
-  };
-  
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white">{cartoonsData.data.titlePage}</h1>
-        <p className="text-gray-400 mt-2">{cartoonsData.data.seoOnPage.descriptionHead}</p>
+        <h1 className="text-3xl font-bold text-white">{moviesData.data.titlePage}</h1>
+        <p className="text-gray-400 mt-2">{moviesData.data.seoOnPage.descriptionHead}</p>
       </div>
       
       <FilterBrowse
@@ -89,36 +75,19 @@ export default async function HoatHinhPage({ searchParams }: HoatHinhPageProps) 
         years={years}
       />
       
-      <Suspense fallback={<MovieListSkeleton />}>
-        <CardViewMovie items={items as any} imageDomain={imageDomain} />
-      </Suspense>
-      
-      {totalPages > 1 && (
-        <div className="mt-8 flex justify-center">
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            baseUrl={createPaginationBaseUrl()}
-          />
-        </div>
-      )}
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <FilteredMoviesList 
+            type="hoat-hinh"
+            baseUrl="/hoat-hinh"
+            page={page}
+            category={category}
+            country={country}
+            year={year}
+            sortField={sortField}
+            sortType={sortType}
+            sortLang={sortLang}
+        />
+      </HydrationBoundary>
     </div>
   );
 }
-
-function MovieListSkeleton() {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {Array.from({ length: 18 }).map((_, index) => (
-        <div key={index} className="bg-neutral-900 rounded-lg overflow-hidden">
-          <Skeleton className="aspect-[2/3] w-full" />
-          <div className="p-3">
-            <Skeleton className="h-5 w-full mb-2" />
-            <Skeleton className="h-4 w-3/4 mb-2" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-} 
