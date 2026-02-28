@@ -228,7 +228,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
       hotkey: true,
       autoPlayback: true,
       fullscreen: true,
-      fullscreenWeb: true,
+      fullscreenWeb: !isMobile,
       miniProgressBar: true,
       theme: '#FFD700',
       controls: controls,
