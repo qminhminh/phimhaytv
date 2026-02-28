@@ -304,7 +304,7 @@ export default function MediaPlayer({ embedUrl, m3u8Url, title, poster, videoUrl
           <div ref={playerContainerRef} style={{ aspectRatio: `${aspectRatio}` }} className="w-full artplayer-app text-left z-[1]"></div>
         )}
 
-        {/* Loading Indicator cho M3U8 */}
+        {/* Loading Indicator cho M3U8  */}
         {isM3u8Loading && !useIframe && (
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center pointer-events-none z-10">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
