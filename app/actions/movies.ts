@@ -1,14 +1,13 @@
 'use server'
 
-import { 
-    getLatestMovies, 
-    getMoviesList, 
-    getMoviesByCategory, 
-    getMoviesByCountry, 
+import {
+    getLatestMovies,
+    getMoviesList,
+    getMoviesByCategory,
+    getMoviesByCountry,
     getMoviesByYear,
     searchMovies,
-    getMovieDetail,
-    getEnhancedMovieData
+    getMovieDetail
 } from '@/lib/api'
 
 // Bridge for client components to access server-only API functions
@@ -38,8 +37,4 @@ export async function fetchSearchMovies(keyword: string, options: any) {
 
 export async function fetchMovieDetail(slug: string) {
     return await getMovieDetail(slug);
-}
-
-export async function fetchEnhancedMovieData(slug: string) {
-    return await getEnhancedMovieData(slug);
 }
