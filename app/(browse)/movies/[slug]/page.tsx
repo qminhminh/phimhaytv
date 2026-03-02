@@ -1,17 +1,14 @@
-import { getMovieBySlug, getEnhancedMovieData } from '@/lib/api';
+import { getMovieBySlug } from '@/lib/api';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PlayCircle, Film, Calendar, Clock, Tv, Star, BarChart3, MessageCircle, BookOpen } from 'lucide-react';
+import { PlayCircle, Film, Calendar, Clock, Tv, Star } from 'lucide-react';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SimilarMovies } from '@/components/shared/SimilarMovies';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CopyLinkButton } from '@/components/shared/CopyLinkButton';
-import { MovieRatings } from '@/components/shared/MovieRatings';
-import { MovieAnalysis } from '@/components/shared/MovieAnalysis';
-import { MovieStats } from '@/components/shared/MovieStats';
 import { PlayMovieButton } from '@/components/shared/PlayMovieButton';
 
 type MovieDetailPageProps = {
@@ -22,49 +19,43 @@ type MovieDetailPageProps = {
 
 export async function generateMetadata({ params }: MovieDetailPageProps): Promise<Metadata> {
     const resolvedParams = await params;
-    const enhancedData = await getEnhancedMovieData(resolvedParams.slug);
+    const data = await getMovieBySlug(resolvedParams.slug);
 
-    if (!enhancedData) {
+    if (!data || !data.movie) {
         return {
             title: 'Không tìm thấy phim | PhimHayTV',
         };
     }
 
-    // Tạo title và description độc đáo
-    const uniqueTitle = `${enhancedData.name} (${enhancedData.year}) - Phân tích & Đánh giá | PhimHayTV`;
-    const uniqueDescription = `${enhancedData.uniqueDescription.substring(0, 120)}... Điểm đánh giá: ${enhancedData.userStats.averageRating}/10 từ ${enhancedData.userStats.totalRatings} người dùng. Xem phim chất lượng HD tại PhimHayTV.`;
+    const { movie } = data;
+    const title = `${movie.name} (${movie.year}) | PhimHayTV`;
+    const description = `Xem phim ${movie.name} (${movie.origin_name}) ${movie.year} chất lượng ${movie.quality}, ${movie.lang} miễn phí tại PhimHayTV.`;
 
     return {
-        title: uniqueTitle,
-        description: uniqueDescription,
+        title,
+        description,
         keywords: [
-            enhancedData.name,
-            enhancedData.origin_name,
-            ...enhancedData.category.map(c => c.name),
-            ...enhancedData.country.map(c => c.name),
+            movie.name,
+            movie.origin_name,
+            ...movie.category.map(c => c.name),
+            ...movie.country.map(c => c.name),
             'PhimHayTV',
-            'phân tích phim',
-            'đánh giá phim',
             'xem phim online'
         ].join(', '),
         openGraph: {
-            title: uniqueTitle,
-            description: uniqueDescription,
-            images: [enhancedData.poster_url || enhancedData.thumb_url],
+            title,
+            description,
+            images: [movie.poster_url || movie.thumb_url],
             type: 'video.movie',
-            url: `https://phimhaytv.com/movies/${enhancedData.slug}`,
+            url: `https://phimhaytv.com/movies/${movie.slug}`,
             siteName: 'PhimHayTV',
         },
         twitter: {
             card: 'summary_large_image',
-            title: uniqueTitle,
-            description: uniqueDescription,
-            images: [enhancedData.poster_url || enhancedData.thumb_url],
+            title,
+            description,
+            images: [movie.poster_url || movie.thumb_url],
         },
-        other: {
-            'rating': enhancedData.userStats.averageRating.toString(),
-            'content-language': 'vi',
-        }
     };
 }
 
@@ -82,13 +73,9 @@ export default async function MovieDetailPage({ params }: MovieDetailPageProps) 
 }
 
 async function MovieDetailContent({ slug }: { slug: string }) {
-    // Lấy cả dữ liệu gốc và enhanced data
-    const [baseData, enhancedData] = await Promise.all([
-        getMovieBySlug(slug),
-        getEnhancedMovieData(slug)
-    ]);
+    const baseData = await getMovieBySlug(slug);
 
-    if (!baseData || !baseData.movie || !enhancedData) {
+    if (!baseData || !baseData.movie) {
         notFound();
     }
 
@@ -99,7 +86,7 @@ async function MovieDetailContent({ slug }: { slug: string }) {
     return (
         <div className="relative text-white min-h-screen">
             {/* Background Image */}
-            
+
             <div className="absolute top-0 left-0 w-full h-[60vh] -z-10">
                 <Image
                     src={posterUrl}
@@ -133,10 +120,10 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                         {/* Action Buttons */}
                         <div className="flex flex-wrap gap-4 pt-2">
                             {firstEpisode && (
-                                <PlayMovieButton 
-                                    movieId={movie._id} 
-                                    movieSlug={movie.slug} 
-                                    firstEpisodeSlug={firstEpisode.slug} 
+                                <PlayMovieButton
+                                    movieId={movie._id}
+                                    movieSlug={movie.slug}
+                                    firstEpisodeSlug={firstEpisode.slug}
                                     className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg shadow-amber-500/20"
                                 />
                             )}
@@ -147,7 +134,7 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                                 </a>
                             )}
                         </div>
-                        
+
                         {/* Synopsis */}
                         <div className="prose prose-invert max-w-none text-gray-300 pt-2" dangerouslySetInnerHTML={{ __html: movie.content }}></div>
 
@@ -165,25 +152,13 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                     </div>
                 </div>
 
-                {/* Enhanced Content Sections */}
+                {/* Content Sections */}
                 <div className="mt-12">
                     <Tabs defaultValue="episodes" className="w-full">
-                        <TabsList className="grid w-full grid-cols-5 max-w-2xl bg-gray-800/50 rounded-lg p-1">
+                        <TabsList className="grid w-full grid-cols-2 max-w-md bg-gray-800/50 rounded-lg p-1">
                             <TabsTrigger value="episodes" className="data-[state=active]:bg-gradient-to-r from-amber-500 to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md text-xs">
                                 <PlayCircle className="w-4 h-4 mr-1" />
                                 Tập phim
-                            </TabsTrigger>
-                            <TabsTrigger value="analysis" className="data-[state=active]:bg-gradient-to-r from-amber-500 to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md text-xs">
-                                <BookOpen className="w-4 h-4 mr-1" />
-                                Phân tích
-                            </TabsTrigger>
-                            <TabsTrigger value="ratings" className="data-[state=active]:bg-gradient-to-r from-amber-500 to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md text-xs">
-                                <MessageCircle className="w-4 h-4 mr-1" />
-                                Đánh giá
-                            </TabsTrigger>
-                            <TabsTrigger value="stats" className="data-[state=active]:bg-gradient-to-r from-amber-500 to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md text-xs">
-                                <BarChart3 className="w-4 h-4 mr-1" />
-                                Thống kê
                             </TabsTrigger>
                             <TabsTrigger value="download" className="data-[state=active]:bg-gradient-to-r from-amber-500 to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md text-xs">
                                 <Film className="w-4 h-4 mr-1" />
@@ -217,37 +192,6 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                                 ) : (
                                     <p className="text-gray-400 mt-4">Chưa có tập phim nào được cập nhật.</p>
                                 )}
-                            </div>
-                        </TabsContent>
-
-                        {/* Tab Analysis */}
-                        <TabsContent value="analysis">
-                            <div className="mt-6">
-                                <MovieAnalysis 
-                                    analysis={enhancedData.analysis}
-                                    editorialContent={enhancedData.editorialContent}
-                                    uniqueDescription={enhancedData.uniqueDescription}
-                                />
-                            </div>
-                        </TabsContent>
-
-                        {/* Tab Ratings */}
-                        <TabsContent value="ratings">
-                            <div className="mt-6">
-                                <MovieRatings 
-                                    movieSlug={movie.slug}
-                                    averageRating={enhancedData.userStats.averageRating}
-                                    totalRatings={enhancedData.userStats.totalRatings}
-                                    userRatings={enhancedData.userRatings}
-                                    featuredReviews={enhancedData.featuredReviews}
-                                />
-                            </div>
-                        </TabsContent>
-
-                        {/* Tab Stats */}
-                        <TabsContent value="stats">
-                            <div className="mt-6">
-                                <MovieStats stats={enhancedData.userStats} />
                             </div>
                         </TabsContent>
 
@@ -332,12 +276,12 @@ function MovieDetailSkeleton() {
                     <div className="md:col-span-2 lg:col-span-3 space-y-6">
                         <Skeleton className="h-12 w-3/4" />
                         <Skeleton className="h-6 w-1/2" />
-                        
+
                         <div className="flex flex-wrap gap-4 pt-2">
                             <Skeleton className="h-12 w-32 rounded-full" />
                             <Skeleton className="h-12 w-32 rounded-full" />
                         </div>
-                        
+
                         <div className="space-y-3 pt-2">
                             <Skeleton className="h-4 w-full" />
                             <Skeleton className="h-4 w-full" />
@@ -384,4 +328,4 @@ function SimilarMoviesSkeleton() {
             </div>
         </div>
     )
-} 
+}

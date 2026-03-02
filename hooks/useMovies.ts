@@ -1,13 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { 
-    fetchLatestMovies, 
-    fetchMoviesList, 
+import {
+    fetchLatestMovies,
+    fetchMoviesList,
     fetchMoviesByCategory,
     fetchMoviesByCountry,
     fetchMoviesByYear,
     fetchSearchMovies,
-    fetchMovieDetail,
-    fetchEnhancedMovieData
+    fetchMovieDetail
 } from '@/app/actions/movies'
 
 export function useLatestMovies(options: { page?: number; limit?: number } = {}) {
@@ -65,14 +64,6 @@ export function useMovieDetail(slug: string) {
     return useQuery({
         queryKey: ['movie-detail', slug],
         queryFn: () => fetchMovieDetail(slug),
-        enabled: !!slug,
-    })
-}
-
-export function useEnhancedMovieDetail(slug: string) {
-    return useQuery({
-        queryKey: ['movie-detail-enhanced', slug],
-        queryFn: () => fetchEnhancedMovieData(slug),
         enabled: !!slug,
     })
 }
