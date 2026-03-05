@@ -17,14 +17,24 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  // Lấy dữ liệu phim tuần tự
-  const latestMovies = await getLatestMovies({ limit: 17 });
-  const singleMovies = await getSingleMovies({ limit: 12 });
-  const seriesMovies = await getTVSeries({ limit: 12 });
-  const tvShows = await getTVSeries({ limit: 12});
-  const vietsubMovies = await getVietSubMovies({ limit: 12 });
-  const thuyetMinhMovies = await getThuyetMinhMovies({ limit: 12 });
-  const longTiengMovies = await getLongTiengMovies({ limit: 12 });
+  // Fetch tất cả dữ liệu song song để loại bỏ waterfall
+  const [
+    latestMovies,
+    singleMovies,
+    seriesMovies,
+    tvShows,
+    vietsubMovies,
+    thuyetMinhMovies,
+    longTiengMovies,
+  ] = await Promise.all([
+    getLatestMovies({ limit: 17 }),
+    getSingleMovies({ limit: 12 }),
+    getTVSeries({ limit: 12 }),
+    getTVSeries({ limit: 12 }),
+    getVietSubMovies({ limit: 12 }),
+    getThuyetMinhMovies({ limit: 12 }),
+    getLongTiengMovies({ limit: 12 }),
+  ]);
 
   // Tách phim cho Hero Section và danh sách phim mới
   const featuredMovies = latestMovies.data.items.slice(0, 5);
