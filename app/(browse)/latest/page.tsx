@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import LatestMoviesList from '@/components/movies/LatestMoviesList';
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 import { fetchLatestMovies } from '@/app/actions/movies';
+import { thinMovieData } from '@/lib/api';
 
 interface LatestMoviesPageProps {
   searchParams: Promise<{
@@ -20,9 +21,18 @@ export default async function LatestMoviesPage({ searchParams }: LatestMoviesPag
 
   const queryClient = new QueryClient();
   
+  const moviesData = await fetchLatestMovies({ page, limit: 24 });
+  const thinnedMoviesData = {
+    ...moviesData,
+    data: {
+      ...moviesData.data,
+      items: thinMovieData(moviesData.data.items)
+    }
+  };
+  
   await queryClient.prefetchQuery({
     queryKey: ['latest-movies', { page, limit: 24 }],
-    queryFn: () => fetchLatestMovies({ page, limit: 24 }),
+    queryFn: () => Promise.resolve(thinnedMoviesData),
   });
 
   return (

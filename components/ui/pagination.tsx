@@ -60,7 +60,7 @@ export function Pagination({
         <Link
           key={page}
           href={createPageUrl(page)}
-          prefetch={true}
+          prefetch={false}
           className={cn(
             "w-10 h-10 flex items-center justify-center rounded-md text-sm font-medium transition-colors",
             currentPage === page 
@@ -91,7 +91,7 @@ export function Pagination({
       <div className="flex items-center space-x-2">
         <Link
           href={prevPage ? createPageUrl(prevPage) : "#"}
-          prefetch={!!prevPage}
+          prefetch={false}
           className={cn(
             "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
             "bg-neutral-800 text-gray-200 hover:bg-neutral-700",
@@ -108,7 +108,7 @@ export function Pagination({
         
         <Link
           href={nextPage ? createPageUrl(nextPage) : "#"}
-          prefetch={!!nextPage}
+          prefetch={false}
           className={cn(
             "flex items-center px-3 h-10 rounded-md text-sm font-medium transition-colors",
             "bg-neutral-800 text-gray-200 hover:bg-neutral-700",

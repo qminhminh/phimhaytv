@@ -179,7 +179,7 @@ const CardViewMovie: React.FC<CardViewMovieProps> = ({ items, imageDomain }) => 
             </div>
             <Link
               href={getLink(item)}
-              prefetch={true}
+              prefetch={false}
               onClick={handleClick}
               className="absolute inset-0 z-0"
               aria-label={`Xem chi tiết phim ${item.name}`}
