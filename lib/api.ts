@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 
 const BASE_URL = 'https://phimapi.com';
 const DEFAULT_REVALIDATE_TIME = 3600; // 1 giờ
@@ -8,7 +9,7 @@ async function fetcher<T>(
   params: Record<string, any> = {},
   options: { revalidate?: number } = {}
 ): Promise<T> {
-  const { revalidate = DEFAULT_REVALIDATE_TIME } = options;
+  const { revalidate = DEFAULT_REVALIDATE_TIME } = options; // Cache for 1 hour by default
 
   const url = new URL(`${BASE_URL}${path}`);
   Object.entries(params).forEach(([key, value]) => {
@@ -116,6 +117,7 @@ export interface MovieListApiResponse {
         totalPages: number;
       };
     };
+    // ... các trường khác nếu cần
   };
 }
 
@@ -208,7 +210,7 @@ export interface SearchApiResponse {
         og_type: string;
         titleHead: string;
         descriptionHead: string;
-        og_image: any[];
+        og_image: any[]; // Hoặc một kiểu cụ thể hơn nếu bạn biết
         og_url: string;
       };
       breadCrumb: {
@@ -240,45 +242,27 @@ export interface SearchApiResponse {
     };
   }
 
-export interface EpisodeServerData {
-    name: string;
-    slug: string;
-    filename: string;
-    link_embed: string;
-    link_m3u8: string;
-}
+// Helper function to thin out movie data to save bandwidth
+export const thinMovieData = (movies: any[]) => {
+  if (!Array.isArray(movies)) return [];
+  return movies.map(m => ({
+    _id: m._id,
+    name: m.name,
+    slug: m.slug,
+    origin_name: m.origin_name,
+    poster_url: m.poster_url,
+    thumb_url: m.thumb_url,
+    year: m.year,
+    quality: m.quality,
+    lang: m.lang,
+    time: m.time,
+    episode_current: m.episode_current,
+    category: m.category,
+    tmdb: m.tmdb
+  }));
+};
 
-export interface Episode {
-    server_name: string;
-    server_data: EpisodeServerData[];
-}
-
-export interface CategoryInfo {
-    id: string;
-    name: string;
-    slug: string;
-}
-
-export interface CountryInfo {
-    id:string;
-    name: string;
-    slug: string;
-}
-
-export interface DetailedMovie extends Omit<Movie, 'category' | 'country'> {
-    actor: string[];
-    director: string[];
-    category: CategoryInfo[];
-    country: CountryInfo[];
-}
-
-export interface MovieDetailData {
-    status: boolean;
-    msg: string;
-    movie: DetailedMovie;
-    episodes: Episode[];
-}
-
+// Hàm mới để lấy danh sách phim theo type_list và các bộ lọc
 export const getMoviesList = async (
   type_list: 'phim-bo' | 'phim-le' | 'tv-shows' | 'hoat-hinh' | 'phim-vietsub' | 'phim-thuyet-minh' | 'phim-long-tieng',
   options: {
@@ -291,7 +275,7 @@ export const getMoviesList = async (
     year?: number | string;
     limit?: number;
   } = {}
-): Promise<TVSeriesResponse> => {
+): Promise<TVSeriesResponse> => { // Tận dụng lại TVSeriesResponse vì cấu trúc có vẻ tương đồng
   const { page = 1, limit = 24, ...rest } = options;
   const params = {
     page,
@@ -301,6 +285,7 @@ export const getMoviesList = async (
   return await fetcher<TVSeriesResponse>(`/v1/api/danh-sach/${type_list}`, params);
 };
 
+// Phim mới cập nhật
 export const getLatestMovies = async (
   options: {
     page?: number;
@@ -317,9 +302,10 @@ export const getLatestMovies = async (
     items: TVSeriesResponse['data']['items'];
     pagination: TVSeriesResponse['data']['params']['pagination'];
   }
-
+  
   const response = await fetcher<LatestMoviesApiResponse>('/danh-sach/phim-moi-cap-nhat-v3', params);
 
+  // Adapt the response to match TVSeriesResponse structure that the app expects
   return {
     status: String(response.status),
     msg: '',
@@ -328,6 +314,7 @@ export const getLatestMovies = async (
       params: {
         pagination: response.pagination,
       },
+      // Mock other fields to satisfy the TVSeriesResponse type
       seoOnPage: {
         og_type: 'website',
         titleHead: 'Phim Mới Cập Nhật',
@@ -344,23 +331,22 @@ export const getLatestMovies = async (
   } as unknown as TVSeriesResponse;
 };
 
-export const getMovieBySlug = async (slug: string): Promise<MovieDetailData | null> => {
-    try {
-        const url = `${BASE_URL}/phim/${slug}`;
-        const res = await fetch(url, {
-            next: { revalidate: DEFAULT_REVALIDATE_TIME },
-        });
-        if (!res.ok) {
-            console.error(`Error fetching movie ${slug}: ${res.status} ${res.statusText}`);
-            return null;
-        }
-        return res.json();
-    } catch (error) {
-        console.error(`Error fetching movie by slug "${slug}":`, error);
-        return null;
+// Thông tin Phim & Danh sách tập phim
+export const getMovieDetail = async (slug: string) => {
+  try {
+    const res = await fetch(`${BASE_URL}/v1/api/phim/${slug}`, { next: { revalidate: 3600 } });
+    if (!res.ok) {
+      // Don't throw for client-side expected errors like 404.
+      return null;
     }
+    return res.json();
+  } catch (error) {
+    console.error(`Network error fetching movie detail for slug "${slug}":`, error);
+    return null; // Return null on network errors as well to prevent crash
+  }
 };
 
+// Tìm kiếm phim
 export const searchMovies = async (
     keyword?: string,
     options: {
@@ -388,20 +374,21 @@ export const searchMovies = async (
     return response.data;
   };
 
+// Tìm kiếm gợi ý phim cho autocomplete
 export const getSuggestedMovies = async (
   keyword: string
 ): Promise<{ name: string; slug: string; thumb_url: string; year: number; category: string[] }[]> => {
   if (!keyword.trim() || keyword.length < 2) {
     return [];
   }
-
+  
   try {
-    const result = await searchMovies(keyword, {
-      limit: 8,
+    const result = await searchMovies(keyword, { 
+      limit: 8, // Chỉ lấy 8 kết quả đầu tiên cho suggestions
       sort_field: 'modified.time',
       sort_type: 'desc'
     });
-
+    
     return result.items.map(movie => ({
       name: movie.name,
       slug: movie.slug,
@@ -422,7 +409,8 @@ export const getSuggestedMovies = async (
   }
 };
 
-export const getCategories = async () => {
+// Lấy danh sách thể loại phim
+export const getCategories = cache(async () => {
     try {
         const data = await fetcher<{ _id: string; name: string; slug: string }[]>('/the-loai');
         if (Array.isArray(data)) {
@@ -433,8 +421,9 @@ export const getCategories = async () => {
         console.error('Error fetching categories:', error);
         return [];
     }
-};
+});
 
+// Lấy phim theo thể loại
 export const getMoviesByCategory = async (
   categorySlug: string,
   options?: {
@@ -459,7 +448,8 @@ export const getMoviesByCategory = async (
     return fetcher<MovieResponse>(`/v1/api/the-loai/${categorySlug}`, params);
 };
 
-export const getCountries = async () => {
+// Lấy danh sách quốc gia
+export const getCountries = cache(async () => {
     try {
         const data = await fetcher<{ _id: string; name: string; slug: string }[]>('/quoc-gia');
         if (Array.isArray(data)) {
@@ -470,8 +460,9 @@ export const getCountries = async () => {
         console.error('Error fetching countries:', error);
         return [];
     }
-};
+});
 
+// Lấy phim theo quốc gia
 export const getMoviesByCountry = async (
   countrySlug: string,
   options?: {
@@ -496,6 +487,7 @@ export const getMoviesByCountry = async (
     return fetcher<MovieResponse>(`/v1/api/quoc-gia/${countrySlug}`, params);
 };
 
+// Lấy phim theo năm
 export const getMoviesByYear = async (
   year: number,
   options?: {
@@ -520,6 +512,7 @@ export const getMoviesByYear = async (
     return fetcher<MovieResponse>(`/v1/api/nam-phat-hanh/${year}`, params);
 };
 
+// Lấy danh sách phim bộ
 export const getTVSeries = async (
   options?: {
     page?: number;
@@ -595,6 +588,7 @@ export const getCartoons = async (
   return getMoviesList('hoat-hinh', apiOptions);
 };
 
+// Lấy danh sách phim Vietsub
 export const getVietSubMovies = async (
   options?: {
     page?: number;
@@ -618,6 +612,7 @@ export const getVietSubMovies = async (
   return getMoviesList('phim-vietsub', apiOptions);
 };
 
+// Lấy danh sách phim Thuyết Minh
 export const getThuyetMinhMovies = async (
   options?: {
     page?: number;
@@ -641,6 +636,7 @@ export const getThuyetMinhMovies = async (
   return getMoviesList('phim-thuyet-minh', apiOptions);
 };
 
+// Lấy danh sách phim Lồng Tiếng
 export const getLongTiengMovies = async (
   options?: {
     page?: number;
@@ -664,15 +660,58 @@ export const getLongTiengMovies = async (
   return getMoviesList('phim-long-tieng', apiOptions);
 };
 
-export const getMovieDetail = async (slug: string) => {
-  try {
-    const res = await fetch(`${BASE_URL}/v1/api/phim/${slug}`, { next: { revalidate: 3600 } });
-    if (!res.ok) {
-      return null;
+export interface EpisodeServerData {
+    name: string;
+    slug: string;
+    filename: string;
+    link_embed: string;
+    link_m3u8: string;
+}
+
+export interface Episode {
+    server_name: string;
+    server_data: EpisodeServerData[];
+}
+
+export interface CategoryInfo {
+    id: string;
+    name: string;
+    slug: string;
+}
+
+export interface CountryInfo {
+    id:string;
+    name: string;
+    slug: string;
+}
+
+export interface DetailedMovie extends Omit<Movie, 'category' | 'country'> {
+    actor: string[];
+    director: string[];
+    category: CategoryInfo[];
+    country: CountryInfo[];
+}
+
+export interface MovieDetailData {
+    status: boolean;
+    msg: string;
+    movie: DetailedMovie;
+    episodes: Episode[];
+}
+
+export const getMovieBySlug = cache(async (slug: string): Promise<MovieDetailData | null> => {
+    try {
+        const url = `${BASE_URL}/phim/${slug}`;
+        const res = await fetch(url, {
+            next: { revalidate: DEFAULT_REVALIDATE_TIME },
+        });
+        if (!res.ok) {
+            console.error(`Error fetching movie ${slug}: ${res.status} ${res.statusText}`);
+            return null;
+        }
+        return res.json();
+    } catch (error) {
+        console.error(`Error fetching movie by slug "${slug}":`, error);
+        return null;
     }
-    return res.json();
-  } catch (error) {
-    console.error(`Network error fetching movie detail for slug "${slug}":`, error);
-    return null;
-  }
-};
+});

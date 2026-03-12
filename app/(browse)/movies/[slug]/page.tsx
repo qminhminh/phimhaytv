@@ -28,8 +28,8 @@ export async function generateMetadata({ params }: MovieDetailPageProps): Promis
     }
 
     const { movie } = data;
-    const title = `${movie.name} (${movie.year}) | PhimHayTV`;
-    const description = `Xem phim ${movie.name} (${movie.origin_name}) ${movie.year} chất lượng ${movie.quality}, ${movie.lang} miễn phí tại PhimHayTV.`;
+    const title = `${movie.name} (${movie.year}) - Xem Phim HD Online | PhimHayTV`;
+    const description = `Xem phim ${movie.name} (${movie.year}) chất lượng HD, ${movie.lang} tại PhimHayTV. ${movie.content.substring(0, 150)}...`;
 
     return {
         title,
@@ -56,6 +56,9 @@ export async function generateMetadata({ params }: MovieDetailPageProps): Promis
             description,
             images: [movie.poster_url || movie.thumb_url],
         },
+        other: {
+            'content-language': 'vi',
+        }
     };
 }
 
@@ -86,7 +89,7 @@ async function MovieDetailContent({ slug }: { slug: string }) {
     return (
         <div className="relative text-white min-h-screen">
             {/* Background Image */}
-
+            
             <div className="absolute top-0 left-0 w-full h-[60vh] -z-10">
                 <Image
                     src={posterUrl}
@@ -120,10 +123,10 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                         {/* Action Buttons */}
                         <div className="flex flex-wrap gap-4 pt-2">
                             {firstEpisode && (
-                                <PlayMovieButton
-                                    movieId={movie._id}
-                                    movieSlug={movie.slug}
-                                    firstEpisodeSlug={firstEpisode.slug}
+                                <PlayMovieButton 
+                                    movieId={movie._id} 
+                                    movieSlug={movie.slug} 
+                                    firstEpisodeSlug={firstEpisode.slug} 
                                     className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg shadow-amber-500/20"
                                 />
                             )}
@@ -134,7 +137,7 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                                 </a>
                             )}
                         </div>
-
+                        
                         {/* Synopsis */}
                         <div className="prose prose-invert max-w-none text-gray-300 pt-2" dangerouslySetInnerHTML={{ __html: movie.content }}></div>
 
@@ -155,7 +158,7 @@ async function MovieDetailContent({ slug }: { slug: string }) {
                 {/* Content Sections */}
                 <div className="mt-12">
                     <Tabs defaultValue="episodes" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 max-w-md bg-gray-800/50 rounded-lg p-1">
+                        <TabsList className="grid w-full grid-cols-2 max-w-sm bg-gray-800/50 rounded-lg p-1">
                             <TabsTrigger value="episodes" className="data-[state=active]:bg-gradient-to-r from-amber-500 to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md rounded-md text-xs">
                                 <PlayCircle className="w-4 h-4 mr-1" />
                                 Tập phim
@@ -276,12 +279,12 @@ function MovieDetailSkeleton() {
                     <div className="md:col-span-2 lg:col-span-3 space-y-6">
                         <Skeleton className="h-12 w-3/4" />
                         <Skeleton className="h-6 w-1/2" />
-
+                        
                         <div className="flex flex-wrap gap-4 pt-2">
                             <Skeleton className="h-12 w-32 rounded-full" />
                             <Skeleton className="h-12 w-32 rounded-full" />
                         </div>
-
+                        
                         <div className="space-y-3 pt-2">
                             <Skeleton className="h-4 w-full" />
                             <Skeleton className="h-4 w-full" />
@@ -328,4 +331,4 @@ function SimilarMoviesSkeleton() {
             </div>
         </div>
     )
-}
+} 

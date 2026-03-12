@@ -1,4 +1,4 @@
-import { getLatestMovies, getSingleMovies, getTVSeries, getVietSubMovies, getThuyetMinhMovies, getLongTiengMovies } from '@/lib/api';
+import { getLatestMovies, getSingleMovies, getTVSeries, getVietSubMovies, getThuyetMinhMovies, getLongTiengMovies, thinMovieData } from '@/lib/api';
 import HeroSection from '@/components/shared/HeroSection';
 import CardViewMovie from '@/components/shared/CardViewMovie';
 import Link from 'next/link';
@@ -17,12 +17,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  // Fetch tất cả dữ liệu song song để loại bỏ waterfall
+  // Fetch tất cả dữ liệu song song để tối ưu tốc độ
   const [
     latestMovies,
     singleMovies,
     seriesMovies,
-    tvShows,
     vietsubMovies,
     thuyetMinhMovies,
     longTiengMovies,
@@ -30,11 +29,12 @@ export default async function Home() {
     getLatestMovies({ limit: 17 }),
     getSingleMovies({ limit: 12 }),
     getTVSeries({ limit: 12 }),
-    getTVSeries({ limit: 12 }),
     getVietSubMovies({ limit: 12 }),
     getThuyetMinhMovies({ limit: 12 }),
     getLongTiengMovies({ limit: 12 }),
   ]);
+
+  const tvShows = seriesMovies; // Tái sử dụng dữ liệu thay vì gọi API trùng lặp
 
   // Tách phim cho Hero Section và danh sách phim mới
   const featuredMovies = latestMovies.data.items.slice(0, 5);
@@ -55,7 +55,7 @@ export default async function Home() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
-        <CardViewMovie items={newMovies as any} imageDomain={imageDomain} />
+        <CardViewMovie items={thinMovieData(newMovies) as any} imageDomain={imageDomain} />
         
         <div className="flex items-center justify-between mt-8 mb-4">
           <h2 className="text-2xl font-bold text-[#EAEAEA]">Phim Lẻ Mới</h2>
@@ -64,7 +64,7 @@ export default async function Home() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
-        <CardViewMovie items={singleMovies.data.items} imageDomain={imageDomain} />
+        <CardViewMovie items={thinMovieData(singleMovies.data.items) as any} imageDomain={imageDomain} />
         
         <div className="flex items-center justify-between mt-8 mb-4">
           <h2 className="text-2xl font-bold text-[#EAEAEA]">Phim Bộ Mới</h2>
@@ -73,7 +73,7 @@ export default async function Home() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
-        <CardViewMovie items={seriesMovies.data.items} imageDomain={imageDomain} />
+        <CardViewMovie items={thinMovieData(seriesMovies.data.items) as any} imageDomain={imageDomain} />
 
         <div className="flex items-center justify-between mt-8 mb-4">
           <h2 className="text-2xl font-bold text-[#EAEAEA]">TV Shows</h2>
@@ -82,7 +82,7 @@ export default async function Home() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
-        <CardViewMovie items={tvShows.data.items} imageDomain={imageDomain} />
+        <CardViewMovie items={thinMovieData(tvShows.data.items) as any} imageDomain={imageDomain} />
 
         <div className="flex items-center justify-between mt-8 mb-4">
           <h2 className="text-2xl font-bold text-[#EAEAEA]">Phim Việt Sub</h2>
@@ -91,7 +91,7 @@ export default async function Home() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
-        <CardViewMovie items={vietsubMovies.data.items} imageDomain={imageDomain} />
+        <CardViewMovie items={thinMovieData(vietsubMovies.data.items) as any} imageDomain={imageDomain} />
 
         <div className="flex items-center justify-between mt-8 mb-4">
           <h2 className="text-2xl font-bold text-[#EAEAEA]">Phim Thuyết Minh</h2>
@@ -100,7 +100,7 @@ export default async function Home() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
-        <CardViewMovie items={thuyetMinhMovies.data.items} imageDomain={imageDomain} />
+        <CardViewMovie items={thinMovieData(thuyetMinhMovies.data.items) as any} imageDomain={imageDomain} />
 
         <div className="flex items-center justify-between mt-8 mb-4">
           <h2 className="text-2xl font-bold text-[#EAEAEA]">Phim Lồng Tiếng</h2>
@@ -109,7 +109,7 @@ export default async function Home() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
-        <CardViewMovie items={longTiengMovies.data.items} imageDomain={imageDomain} />
+        <CardViewMovie items={thinMovieData(longTiengMovies.data.items) as any} imageDomain={imageDomain} />
       </div>
     </main>
   );

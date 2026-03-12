@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { getMoviesList, getCategories, getCountries } from '@/lib/api';
+import { getMoviesList, getCategories, getCountries, thinMovieData } from '@/lib/api';
 import FilterBrowse from '@/components/shared/FilterBrowse';
 import FilteredMoviesList from '@/components/movies/FilteredMoviesList';
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
@@ -71,7 +71,14 @@ export default async function PhimLePage({ searchParams }: PhimLePageProps) {
   ]);
   
   const queryClient = new QueryClient();
-  queryClient.setQueryData(['movies-list', 'phim-le', moviesOptions], moviesData);
+  const thinnedMoviesData = {
+    ...moviesData,
+    data: {
+      ...moviesData.data,
+      items: thinMovieData(moviesData.data.items)
+    }
+  };
+  queryClient.setQueryData(['movies-list', 'phim-le', moviesOptions], thinnedMoviesData);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
