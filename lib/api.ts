@@ -1,8 +1,26 @@
 import 'server-only';
 import { cache } from 'react';
+import { redis } from '@/lib/redis';
 
 const BASE_URL = 'https://phimapi.com';
-const DEFAULT_REVALIDATE_TIME = 3600; // 1 giờ
+const DEFAULT_REVALIDATE_TIME = 21600; // 6 giờ
+
+// Helper function to check if response is successful
+const isResponseSuccess = (status: string | boolean | undefined): boolean => {
+  if (typeof status === 'boolean') return status === true;
+  if (typeof status === 'string') return status === 'success' || status === 'true';
+  return false;
+};
+
+// Helper function to generate redis cache keys
+const generateCacheKey = (path: string, params: Record<string, any> = {}) => {
+  const sortedParams = Object.keys(params)
+    .sort()
+    .filter(key => params[key] !== undefined && params[key] !== null && params[key] !== '') // Skip empty/null/undefined params
+    .map(key => `${key}=${params[key]}`)
+    .join('&');
+  return `movies:${path}${sortedParams ? `?${sortedParams}` : ''}`;
+};
 
 async function fetcher<T>(
   path: string,
@@ -275,14 +293,38 @@ export const getMoviesList = async (
     year?: number | string;
     limit?: number;
   } = {}
-): Promise<TVSeriesResponse> => { // Tận dụng lại TVSeriesResponse vì cấu trúc có vẻ tương đồng
+): Promise<TVSeriesResponse> => {
   const { page = 1, limit = 24, ...rest } = options;
   const params = {
     page,
     limit,
     ...rest,
   };
-  return await fetcher<TVSeriesResponse>(`/v1/api/danh-sach/${type_list}`, params);
+  
+  const cacheKey = generateCacheKey(`/danh-sach/${type_list}`, params);
+  
+  try {
+    const cachedData = await redis.get<TVSeriesResponse>(cacheKey);
+    if (cachedData) {
+      // console.log(`[Redis Cache Hit] ${cacheKey}`);
+      return cachedData;
+    }
+  } catch (error) {
+    console.error(`[Redis Cache Error] GET ${cacheKey}:`, error);
+  }
+
+  const response = await fetcher<TVSeriesResponse>(`/v1/api/danh-sach/${type_list}`, params);
+
+  if (response && isResponseSuccess(response.status)) {
+    try {
+      await redis.set(cacheKey, response, { ex: DEFAULT_REVALIDATE_TIME });
+      // console.log(`[Redis Cache Set] ${cacheKey}`);
+    } catch (error) {
+      console.error(`[Redis Cache Error] SET ${cacheKey}:`, error);
+    }
+  }
+
+  return response;
 };
 
 // Phim mới cập nhật
@@ -293,9 +335,21 @@ export const getLatestMovies = async (
   } = {}
 ): Promise<TVSeriesResponse> => {
   const params = {
-    page: options.page,
-    limit: options.limit,
+    page: options.page || 1,
+    limit: options.limit || 10,
   };
+
+  const cacheKey = generateCacheKey('/danh-sach/phim-moi-cap-nhat-v3', params);
+
+  try {
+    const cachedData = await redis.get<TVSeriesResponse>(cacheKey);
+    if (cachedData) {
+      // console.log(`[Redis Cache Hit] ${cacheKey}`);
+      return cachedData;
+    }
+  } catch (error) {
+    console.error(`[Redis Cache Error] GET ${cacheKey}:`, error);
+  }
 
   interface LatestMoviesApiResponse {
     status: boolean;
@@ -306,7 +360,7 @@ export const getLatestMovies = async (
   const response = await fetcher<LatestMoviesApiResponse>('/danh-sach/phim-moi-cap-nhat-v3', params);
 
   // Adapt the response to match TVSeriesResponse structure that the app expects
-  return {
+  const result = {
     status: String(response.status),
     msg: '',
     data: {
@@ -329,6 +383,17 @@ export const getLatestMovies = async (
       APP_DOMAIN_CDN_IMAGE: 'https://phimimg.com',
     },
   } as unknown as TVSeriesResponse;
+
+  if (response && response.status === true) {
+    try {
+      await redis.set(cacheKey, result, { ex: DEFAULT_REVALIDATE_TIME });
+      // console.log(`[Redis Cache Set] ${cacheKey}`);
+    } catch (error) {
+      console.error(`[Redis Cache Error] SET ${cacheKey}:`, error);
+    }
+  }
+
+  return result;
 };
 
 // Thông tin Phim & Danh sách tập phim
@@ -445,7 +510,29 @@ export const getMoviesByCategory = async (
         year: options?.year,
         limit: options?.limit || 24
     };
-    return fetcher<MovieResponse>(`/v1/api/the-loai/${categorySlug}`, params);
+
+    const cacheKey = generateCacheKey(`/the-loai/${categorySlug}`, params);
+
+    try {
+      const cachedData = await redis.get<MovieResponse>(cacheKey);
+      if (cachedData) {
+        return cachedData;
+      }
+    } catch (error) {
+      console.error(`[Redis Cache Error] GET ${cacheKey}:`, error);
+    }
+
+    const response = await fetcher<MovieResponse>(`/v1/api/the-loai/${categorySlug}`, params);
+
+    if (response && isResponseSuccess(response.status)) {
+      try {
+        await redis.set(cacheKey, response, { ex: DEFAULT_REVALIDATE_TIME });
+      } catch (error) {
+        console.error(`[Redis Cache Error] SET ${cacheKey}:`, error);
+      }
+    }
+
+    return response;
 };
 
 // Lấy danh sách quốc gia
@@ -484,7 +571,27 @@ export const getMoviesByCountry = async (
         year: options?.year,
         limit: options?.limit || 24
     };
-    return fetcher<MovieResponse>(`/v1/api/quoc-gia/${countrySlug}`, params);
+
+    const cacheKey = generateCacheKey(`/quoc-gia/${countrySlug}`, params);
+
+    try {
+      const cachedData = await redis.get<MovieResponse>(cacheKey);
+      if (cachedData) return cachedData;
+    } catch (error) {
+      console.error(`[Redis Cache Error] GET ${cacheKey}:`, error);
+    }
+
+    const response = await fetcher<MovieResponse>(`/v1/api/quoc-gia/${countrySlug}`, params);
+
+    if (response && isResponseSuccess(response.status)) {
+      try {
+        await redis.set(cacheKey, response, { ex: DEFAULT_REVALIDATE_TIME });
+      } catch (error) {
+        console.error(`[Redis Cache Error] SET ${cacheKey}:`, error);
+      }
+    }
+
+    return response;
 };
 
 // Lấy phim theo năm
@@ -509,7 +616,27 @@ export const getMoviesByYear = async (
         country: options?.country,
         limit: options?.limit || 24
     };
-    return fetcher<MovieResponse>(`/v1/api/nam-phat-hanh/${year}`, params);
+
+    const cacheKey = generateCacheKey(`/nam-phat-hanh/${year}`, params);
+
+    try {
+      const cachedData = await redis.get<MovieResponse>(cacheKey);
+      if (cachedData) return cachedData;
+    } catch (error) {
+      console.error(`[Redis Cache Error] GET ${cacheKey}:`, error);
+    }
+
+    const response = await fetcher<MovieResponse>(`/v1/api/nam-phat-hanh/${year}`, params);
+
+    if (response && isResponseSuccess(response.status)) {
+      try {
+        await redis.set(cacheKey, response, { ex: DEFAULT_REVALIDATE_TIME });
+      } catch (error) {
+        console.error(`[Redis Cache Error] SET ${cacheKey}:`, error);
+      }
+    }
+
+    return response;
 };
 
 // Lấy danh sách phim bộ
